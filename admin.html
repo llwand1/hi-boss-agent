@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>线索看板 · 简历 Agent</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #fff; --ink: #1d1d1f; --ink-soft: #6e6e73;
+    --line: #e6e6ea; --brand: #007aff; --brand-soft: #e8f1ff;
+    --green: #1a8a3c; --green-soft: #eafaf0;
+    --radius: 14px; --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 26px 20px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 9px; }
+  h1::before { content: ""; width: 4px; height: 20px; border-radius: 2px; background: var(--brand); }
+  .sub { color: var(--ink-soft); font-size: 12.5px; }
+  .acts { display: flex; gap: 8px; align-items: center; }
+  input[type="password"], input[type="text"] {
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px;
+    font-family: inherit; color: var(--ink); background: #fff; width: 190px;
+  }
+  .btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 10px; padding: 8px 15px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); font-weight: 600; }
+  .card {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 20px 22px; margin-bottom: 18px;
+  }
+  .card > h2 { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .card > h2 .tag { font-size: 11.5px; font-weight: 500; color: var(--ink-soft); background: var(--bg); padding: 2px 8px; border-radius: 999px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .stat { background: var(--bg); border-radius: 12px; padding: 14px 16px; }
+  .stat .n { font-size: 24px; font-weight: 700; color: var(--brand); line-height: 1.2; }
+  .stat .l { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .stat.g .n { color: var(--green); }
+  .heat { display: flex; flex-direction: column; gap: 10px; }
+  .heat-row { display: grid; grid-template-columns: 92px 1fr 44px; align-items: center; gap: 10px; font-size: 13px; }
+  .heat-bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .heat-bar > i { display: block; height: 100%; background: var(--brand); border-radius: 999px; width: 0; transition: width .6s; }
+  .heat-row .v { text-align: right; color: var(--ink-soft); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--ink-soft); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  .pill { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+  .empty { color: var(--ink-soft); font-size: 13px; padding: 8px 0; }
+  .err { background: #fff2f2; color: #b42318; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; }
+  .hint { color: var(--ink-soft); font-size: 12px; margin-top: 10px; }
+  code { background: var(--bg); padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+  a.back { color: var(--brand); font-size: 13px; text-decoration: none; }
+  a.back:hover { text-decoration: underline; }
+  @media (max-width: 640px) { .wrap { padding: 18px 14px 40px; } table { font-size: 12px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>线索看板</h1>
+      <div class="sub">谁看了你的简历、看了哪一块、有没有留联系方式</div>
+    </div>
+    <div class="acts">
+      <input type="password" id="token" placeholder="看板口令（本地可留空）" autocomplete="off" />
+      <button class="btn primary" id="refresh">刷新</button>
+      <a class="back" href="/">← 回简历</a>
+    </div>
+  </header>
+
+  <div id="err"></div>
+
+  <div class="card">
+    <h2>概览 <span class="tag" id="storage">—</span></h2>
+    <div class="stats">
+      <div class="stat"><div class="n" id="sLeads">0</div><div class="l">留下联系方式</div></div>
+      <div class="stat"><div class="n" id="sOpen">0</div><div class="l">打开 AI 对话</div></div>
+      <div class="stat"><div class="n" id="sView">0</div><div class="l">板块浏览次数</div></div>
+      <div class="stat g"><div class="n" id="sRate">0%</div><div class="l">对话 → 留联转化</div></div>
+    </div>
+    <div class="hint">转化 = 留联数 ÷ 打开对话数。没绑 KV 时线上不持久化，看板为空属正常（本地会落盘 <code>leads.json</code> / <code>events.json</code>）。</div>
+  </div>
+
+  <div class="card">
+    <h2>板块热度 <span class="tag">HR 摸鱼在看哪</span></h2>
+    <div class="heat" id="heat"><div class="empty">暂无数据</div></div>
+  </div>
+
+  <div class="card">
+    <h2>线索 <span class="tag">留了联系方式的人</span></h2>
+    <div id="leads"><div class="empty">暂无线索</div></div>
+  </div>
+</div>
+
+<script>
+  var SECTION_LABEL = {
+    about: '关于我', skills: '核心技能', tech: '技术栈', edu: '教育', contact: '联系方式',
+  };
+  var $ = function (id) { return document.getElementById(id); };
+  var tokenInput = $('token');
+  tokenInput.value = sessionStorage.getItem('admin_token') || '';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtTime(ts) {
+    if (!ts) return '—';
+    var d = new Date(ts);
+    if (isNaN(d)) return String(ts);
+    var p = function (n) { return n < 10 ? '0' + n : n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  async function load() {
+    var token = tokenInput.value.trim();
+    sessionStorage.setItem('admin_token', token);
+    $('err').innerHTML = '';
+    try {
+      var res = await fetch('/api/admin', { headers: token ? { 'x-admin-token': token } : {} });
+      var data = await res.json();
+      if (!res.ok || data.error) {
+        $('err').innerHTML = '<div class="err">' + esc(data.error || ('请求失败 ' + res.status)) + '</div>';
+        return;
+      }
+      render(data);
+    } catch (e) {
+      $('err').innerHTML = '<div class="err">加载失败：' + esc(e.message) + '（看板需要经由 dev.mjs / Cloudflare 访问，直接双击打开无效）</div>';
+    }
+  }
+
+  function render(data) {
+    var leads = data.leads || [], events = data.events || [];
+    $('storage').textContent = data.storage === 'kv' ? 'Cloudflare KV' : '本地文件';
+
+    var openCount = 0, viewCount = 0, heat = {};
+    events.forEach(function (e) {
+      if (e.type === 'panel_open') openCount++;
+      if (e.type === 'section_view') {
+        viewCount++;
+        var k = e.section || 'unknown';
+        heat[k] = (heat[k] || 0) + 1;
+      }
+    });
+
+    $('sLeads').textContent = leads.length;
+    $('sOpen').textContent = openCount;
+    $('sView').textContent = viewCount;
+    $('sRate').textContent = (openCount ? Math.round((leads.length / openCount) * 100) : 0) + '%';
+
+    // 板块热度
+    var keys = Object.keys(heat).sort(function (a, b) { return heat[b] - heat[a]; });
+    var heatBox = $('heat');
+    heatBox.innerHTML = '';
+    if (!keys.length) {
+      heatBox.innerHTML = '<div class="empty">暂无浏览数据</div>';
+    } else {
+      var max = heat[keys[0]];
+      keys.forEach(function (k) {
+        var row = document.createElement('div');
+        row.className = 'heat-row';
+        row.innerHTML =
+          '<span>' + esc(SECTION_LABEL[k] || k) + '</span>' +
+          '<span class="heat-bar"><i style="width:' + Math.round((heat[k] / max) * 100) + '%"></i></span>' +
+          '<span class="v">' + heat[k] + ' 次</span>';
+        heatBox.appendChild(row);
+      });
+    }
+
+    // 线索表
+    var box = $('leads');
+    box.innerHTML = '';
+    if (!leads.length) {
+      box.innerHTML = '<div class="empty">还没有人留联系方式</div>';
+      return;
+    }
+    var table = document.createElement('table');
+    table.innerHTML = '<thead><tr><th>时间</th><th>称呼</th><th>联系方式</th><th>想聊方向</th><th>当时在看</th></tr></thead>';
+    var tbody = document.createElement('tbody');
+    leads.forEach(function (l) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + esc(fmtTime(l.ts)) + '</td>' +
+        '<td>' + esc(l.name || '—') + '</td>' +
+        '<td><strong>' + esc(l.contact) + '</strong></td>' +
+        '<td>' + esc(l.note || '—') + '</td>' +
+        '<td><span class="pill">' + esc(SECTION_LABEL[l.section] || l.section || '—') + '</span></td>';
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    box.appendChild(table);
+  }
+
+  $('refresh').addEventListener('click', load);
+  tokenInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') load(); });
+  load();
+  setInterval(load, 30000);
+</script>
+</body>
+</html>

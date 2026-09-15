@@ -1,0 +1,6 @@
+# 统一换行符：本仓库由多个 AI 工具（Claude / OpenCode / Qoder / WorkBuddy 等）协作编辑，
+# 不锁定 eol 会因 CRLF/LF 混用产生「整文件都改了」的假 diff。
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.jpg binary

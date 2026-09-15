@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>llwan · 个人简历</title>
+<meta name="description" content="llwan 的个人简历 — 湖南汽车工程职业大学（本科）储能材料工程技术专业" />
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --ink: #1d1d1f;
+    --ink-soft: #6e6e73;
+    --line: #e6e6ea;
+    --brand: #007aff;
+    --brand-soft: #e8f1ff;
+    --radius: 14px;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--brand); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* 顶部工具条 */
+  .toolbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    background: rgba(245,245,247,.8);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .status {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 600; color: #1a8a3c;
+    background: #eafaf0; padding: 7px 13px; border-radius: 999px; border: 1px solid #c7edcf;
+  }
+  .status[hidden] { display: none; }
+  .status .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    cursor: pointer; transition: .15s;
+  }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn svg { width: 15px; height: 15px; }
+
+  /* 布局 */
+  .page { max-width: 1000px; margin: 26px auto 60px; padding: 0 20px; }
+  .sheet {
+    display: grid; grid-template-columns: 300px 1fr; gap: 22px;
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+
+  /* 侧栏 */
+  .aside {
+    background: linear-gradient(180deg, #fbfdff 0%, #f3f8ff 100%);
+    padding: 30px 24px; border-right: 1px solid var(--line);
+  }
+  .avatar {
+    width: 96px; height: 96px; border-radius: 50%;
+    margin: 0 auto 16px; display: grid; place-items: center;
+    background: var(--brand); color: #fff; font-size: 38px; font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0,122,255,.35);
+    transition: transform .25s;
+  }
+  .avatar:hover { transform: scale(1.05); }
+  .name { text-align: center; font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+  .role { text-align: center; color: var(--brand); font-size: 14px; font-weight: 600; margin-top: 4px; }
+  .tagline { text-align: center; color: var(--ink-soft); font-size: 12.5px; margin-top: 8px; }
+
+  .contact { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .contact a, .contact span { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink); }
+  .contact svg { width: 17px; height: 17px; flex: 0 0 17px; color: var(--brand); }
+  .contact a:hover { color: var(--brand); text-decoration: none; }
+
+  .sec-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--ink-soft);
+    margin: 26px 0 12px;
+  }
+  .sec-title svg { width: 16px; height: 16px; color: var(--brand); }
+
+  .skill { margin-bottom: 12px; }
+  .skill .lab { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 5px; }
+  .bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .bar > i {
+    display: block; height: 100%; border-radius: 999px; background: var(--brand);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform .9s cubic-bezier(.2,.7,.2,1);
+  }
+  .bar > i.fill { transform: scaleX(1); }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 7px; }
+  .tag {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    background: var(--brand-soft); color: var(--brand); font-weight: 500;
+  }
+
+  /* 主区 */
+  .main { padding: 34px 34px 38px; }
+  .block { margin-bottom: 30px; }
+  .block > h2 {
+    font-size: 17px; font-weight: 700; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .block > h2::before {
+    content: ""; width: 4px; height: 18px; border-radius: 2px; background: var(--brand);
+  }
+  .lead { color: var(--ink-soft); font-size: 14.5px; }
+
+  /* 求职意向（模板预留：resume.json 填了 intent 才显示） */
+  .intent { display: flex; flex-wrap: wrap; gap: 10px; }
+  .intent .it {
+    background: var(--bg); border-radius: 10px; padding: 10px 14px; min-width: 150px;
+  }
+  .intent .it .k { font-size: 11.5px; color: var(--ink-soft); }
+  .intent .it .v { font-size: 14px; font-weight: 600; margin-top: 2px; }
+
+  /* 项目（模板预留：resume.json 填了 projects 才显示） */
+  .proj {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+  }
+  .proj .ph { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .proj .pt { font-size: 14.5px; font-weight: 700; }
+  .proj .pm { font-size: 12px; color: var(--ink-soft); }
+  .proj .pd { font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; }
+  .proj .pk { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .proj .pk .tag { background: var(--bg); color: var(--ink-soft); }
+
+  /* AI 问答 · 右上角可拖动唤起 */
+  .ai-fab {
+    position: fixed; top: 72px; right: 18px; z-index: 40;
+    width: 60px; height: 60px; border-radius: 50%; border: none;
+    background: linear-gradient(135deg, #0a84ff, #00c6ff);
+    color: #fff; cursor: grab; touch-action: none;
+    display: grid; place-items: center;
+    box-shadow: 0 10px 26px rgba(0,140,255,.45);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .ai-fab:active { cursor: grabbing; }
+  .ai-fab:hover { transform: scale(1.08); box-shadow: 0 14px 32px rgba(0,140,255,.55); }
+  .ai-fab::before {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(0,140,255,.45);
+    animation: fabpulse 2.4s infinite;
+  }
+  @keyframes fabpulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,140,255,.45); }
+    70%  { box-shadow: 0 0 0 14px rgba(0,140,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,140,255,0); }
+  }
+  .ai-fab svg { width: 28px; height: 28px; position: relative; }
+
+  /* AI 提示气泡 */
+  .tip {
+    position: fixed; z-index: 42; max-width: 210px;
+    background: #1d1d1f; color: #fff; font-size: 12.5px; line-height: 1.45;
+    padding: 10px 30px 10px 13px; border-radius: 12px;
+    box-shadow: 0 10px 26px rgba(0,0,0,.22);
+    opacity: 0; transform: translateY(6px) scale(.96); pointer-events: none;
+    transition: opacity .25s, transform .25s;
+  }
+  .tip.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; cursor: pointer; }
+  .tip-x {
+    position: absolute; top: 3px; right: 7px; font-size: 15px; line-height: 1;
+    color: rgba(255,255,255,.55); cursor: pointer; padding: 2px 4px;
+  }
+  .tip-x:hover { color: #fff; }
+
+  .ai-panel {
+    position: fixed; top: 72px; right: 18px; z-index: 41;
+    width: 360px; max-width: calc(100vw - 36px);
+    height: min(76vh, 560px);
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.18);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: translateY(-8px) scale(.98); opacity: 0; pointer-events: none;
+    transition: transform .22s ease, opacity .22s ease;
+  }
+  .ai-panel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+  .ai-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg,#fbfdff,#f3f8ff);
+  }
+  .ai-head .t { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .ai-head .t .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.8s infinite; }
+  .ai-close { border: none; background: transparent; color: var(--ink-soft); cursor: pointer; padding: 4px; border-radius: 8px; display: grid; place-items: center; }
+  .ai-close:hover { background: var(--line); color: var(--ink); }
+  .ai-close svg { width: 18px; height: 18px; }
+  .ai-body { flex: 1; padding: 16px; overflow-y: auto; }
+  .ai-hint { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 12px; }
+  .ai-bubble {
+    background: var(--brand-soft); color: #0a4a8f; font-size: 13.5px;
+    padding: 10px 14px; border-radius: 14px; border-top-left-radius: 4px;
+    display: inline-block; max-width: 92%;
+  }
+  .caret {
+    display: inline-block; width: 7px; height: 14px; background: var(--brand);
+    margin-left: 3px; vertical-align: -2px; border-radius: 1px;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .ai-msg { display: flex; margin-bottom: 10px; }
+  .ai-msg.user { justify-content: flex-end; }
+  .ai-bubble.user { background: var(--brand); color: #fff; border-top-left-radius: 14px; border-top-right-radius: 4px; }
+  .ai-input { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); }
+  .ai-input input {
+    flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+    font-size: 13.5px; background: #fff; color: var(--ink-soft);
+  }
+  .ai-input button {
+    border: none; background: var(--brand); color: #fff; border-radius: 10px;
+    padding: 0 18px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  .ai-input .lead-toggle {
+    border: 1px solid var(--line); background: #fff; color: var(--ink-soft);
+    border-radius: 10px; padding: 0 12px; font-size: 12.5px; cursor: pointer;
+  }
+  .ai-input .lead-toggle:hover { color: var(--brand); border-color: var(--brand); }
+  .ai-input input:disabled, .ai-input button:disabled { opacity: .7; cursor: not-allowed; }
+
+  /* AI 建议问题 chips（贴合当前浏览板块） */
+  .ai-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 12px; }
+  .ai-chip {
+    font-size: 12px; padding: 6px 11px; border-radius: 999px;
+    background: var(--brand-soft); color: var(--brand); cursor: pointer;
+    border: 1px solid transparent; transition: .15s;
+  }
+  .ai-chip:hover { border-color: var(--brand); }
+
+  /* AI 留资（把注意力转成机会） */
+  .ai-lead { padding: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .ai-lead[hidden] { display: none; }
+  .ai-lead-h { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .ai-lead input, .ai-lead textarea {
+    border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px;
+    font-size: 13px; font-family: inherit; resize: vertical; color: var(--ink);
+  }
+  .ai-lead-row { display: flex; gap: 8px; justify-content: flex-end; }
+  .ai-lead-row button { border: none; border-radius: 9px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+  .ai-lead-row .cancel { background: var(--line); color: var(--ink-soft); }
+  .ai-lead-row .submit { background: var(--brand); color: #fff; font-weight: 600; }
+  .ai-lead-ok { font-size: 12.5px; color: #1a8a3c; text-align: center; }
+  .ai-lead-ok[hidden] { display: none; }
+
+  footer { text-align: center; color: var(--ink-soft); font-size: 12px; margin-top: 26px; }
+
+  /* 轻提示 */
+  .toast {
+    position: fixed; left: 50%; bottom: 32px;
+    transform: translateX(-50%) translateY(20px);
+    background: #1d1d1f; color: #fff; font-size: 13px;
+    padding: 10px 18px; border-radius: 999px; opacity: 0;
+    transition: .25s; z-index: 50; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 响应式 */
+  @media (max-width: 720px) {
+    .sheet { grid-template-columns: 1fr; }
+    .aside { border-right: none; border-bottom: 1px solid var(--line); }
+    .main { padding: 26px 22px 30px; }
+    .toolbar { flex-wrap: wrap; }
+  }
+
+  /* 打印 */
+  @media print {
+    body { background: #fff; }
+    .toolbar, .ai-fab, .ai-panel, .tip { display: none; }
+    .page { margin: 0; padding: 0; }
+    .sheet { box-shadow: none; border-radius: 0; }
+    a { color: var(--ink); text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="status" id="rfStatus"><span class="dot"></span><span id="rfStatusText">随时到岗</span></div>
+  <button class="btn" onclick="window.print()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    打印 / 导出 PDF
+  </button>
+</div>
+
+<div class="page">
+  <div class="sheet">
+
+    <!-- 侧栏 -->
+    <aside class="aside">
+      <div class="avatar" id="rfAvatar">L</div>
+      <div class="name" id="rfName">llwan</div>
+      <div class="role" id="rfRole">学生</div>
+      <div class="tagline" id="rfTagline">本科 · 湖南</div>
+
+      <div class="contact" data-section="contact">
+        <a id="rfMail" href="mailto:you@example.com">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+          <span id="rfMailText">you@example.com</span>
+        </a>
+        <span id="rfLocWrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="rfLocText">中国 · 湖南</span>
+        </span>
+        <a id="rfGh" href="https://github.com/llwan" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 2.9-.39c.98 0 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.41-5.25 5.69.41.36.78 1.07.78 2.16 0 1.56-.01 2.82-.01 3.2 0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/></svg>
+          <span id="rfGhText">github.com/llwan</span>
+        </a>
+        <a id="rfWeb" href="https://llwan.dev" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/></svg>
+          <span id="rfWebText">llwan.dev</span>
+        </a>
+      </div>
+
+      <div class="sec-title" data-section="skills">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z"/></svg>
+        核心技能
+      </div>
+      <div id="rfSkills">
+        <div class="skill"><div class="lab"><span>TypeScript / React</span><span>95%</span></div><div class="bar"><i style="width:95%"></i></div></div>
+        <div class="skill"><div class="lab"><span>Node.js / Express</span><span>90%</span></div><div class="bar"><i style="width:90%"></i></div></div>
+        <div class="skill"><div class="lab"><span>Python / Flask</span><span>85%</span></div><div class="bar"><i style="width:85%"></i></div></div>
+      </div>
+
+      <div class="sec-title" data-section="tech">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        技术栈
+      </div>
+      <div class="tags" id="rfTech">
+        <span class="tag">React 18</span><span class="tag">Vite</span><span class="tag">Next.js</span>
+        <span class="tag">Express</span><span class="tag">better-sqlite3</span><span class="tag">SSE</span>
+        <span class="tag">Python</span><span class="tag">Flask</span><span class="tag">Cloudflare</span>
+        <span class="tag">Docker</span><span class="tag">Tailwind</span><span class="tag">Git</span>
+      </div>
+
+      <div class="sec-title" data-section="edu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+        教育
+      </div>
+      <div style="font-size:13.5px;">
+        <div style="font-weight:600;" id="rfMajor">储能材料工程技术</div>
+        <div style="color:var(--ink-soft);font-size:12.5px;" id="rfSchool">湖南汽车工程职业大学（本科）· 2025 — 2026</div>
+      </div>
+    </aside>
+
+    <!-- 主区 -->
+    <main class="main">
+      <section class="block" data-section="about">
+        <h2>关于我</h2>
+        <p class="lead" id="rfAbout">
+          湖南汽车工程职业大学（本科）储能材料工程技术专业本科生，目前正在系统学习软件开发与 Web 技术。喜欢动手把学到的知识做成能跑起来的小项目，
+          习惯边做边学。对前端、AI 应用和独立开发有浓厚兴趣，正在持续积累实战经验，随时可以投入到实习或协作项目中。
+        </p>
+      </section>
+
+      <footer>本简历由静态 HTML 生成 · 可一键打印 / 导出 PDF · 部署于 Cloudflare Pages</footer>
+    </main>
+
+  </div>
+</div>
+
+<!-- 右上角可拖动的 AI 问答入口 -->
+<button class="ai-fab" id="aiFab" aria-label="打开 AI 问答" aria-expanded="false">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.6 6.1V21l3.3-1.8c.9.2 1.8.3 2.8.3 5.5 0 10-3.6 10-8s-4.5-8.5-10-8.5Z"/><circle cx="8.4" cy="11" r="1.35"/><circle cx="12" cy="11" r="1.35"/><circle cx="15.6" cy="11" r="1.35"/></svg>
+</button>
+<div class="tip" id="aiTip">有什么问题可以问问我<span class="tip-x" id="aiTipX" aria-label="关闭">×</span></div>
+
+<div class="ai-panel" id="aiPanel" role="dialog" aria-label="AI 问答助手">
+  <div class="ai-head">
+    <div class="t"><span class="dot"></span>AI 问答助手</div>
+    <button class="ai-close" id="aiClose" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="ai-body" id="aiBody">
+    <div class="ai-bubble" id="aiGreeting">你好，我是 llwan 的 AI 分身。关于我的专业、技能、经历都可以问我～</div>
+  </div>
+  <div class="ai-suggest" id="aiSuggest"></div>
+  <div class="ai-lead" id="aiLead" hidden>
+    <div class="ai-lead-h">留下联系方式，方便进一步聊</div>
+    <input id="leadName" placeholder="怎么称呼你（可选）" autocomplete="off" />
+    <input id="leadContact" placeholder="微信 / 邮箱 / 电话" autocomplete="off" />
+    <textarea id="leadNote" rows="2" placeholder="想聊的方向（可选）"></textarea>
+    <div class="ai-lead-row">
+      <button class="cancel" id="leadCancel">取消</button>
+      <button class="submit" id="leadSubmit">提交</button>
+    </div>
+    <div class="ai-lead-ok" id="leadOk" hidden>已收到，会尽快联系你，谢谢～</div>
+  </div>
+  <div class="ai-input">
+    <input type="text" id="aiInput" placeholder="问问关于我的简历吧…" autocomplete="off" />
+    <button id="aiSend">发送</button>
+    <button class="lead-toggle" id="leadToggle" title="留下联系方式">留联</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._t);
+    t._t = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  // 技能条进入视口时填充动画
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        e.target.querySelectorAll('.bar > i').forEach(function (i) { i.classList.add('fill'); });
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.2 });
+
+  // 点击邮箱复制
+  function bindMailCopy() {
+    document.querySelectorAll('a[href^="mailto:"]').forEach(function (a) {
+      if (a._bound) return;
+      a._bound = true;
+      a.addEventListener('click', function (ev) {
+        var mail = a.getAttribute('href').replace('mailto:', '');
+        if (navigator.clipboard) {
+          ev.preventDefault();
+          navigator.clipboard.writeText(mail).then(function () { toast('邮箱已复制：' + mail); });
+        }
+      });
+    });
+  }
+  bindMailCopy();
+
+  // —— AI 问答：唤起 / 关闭 ——
+  var fab = document.getElementById('aiFab');
+  var panel = document.getElementById('aiPanel');
+  var closeBtn = document.getElementById('aiClose');
+  var tip = document.getElementById('aiTip');
+  var tipX = document.getElementById('aiTipX');
+  var tipTimer;
+
+  function toggleAI(open) {
+    panel.classList.toggle('open', open);
+    fab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { clearTimeout(tipTimer); hideTip(); }   // 打开过一次后停止自动提示
+  }
+  function hideTip() { tip.classList.remove('show'); clearTimeout(tip._h); }
+  function placeTip() {
+    var r = fab.getBoundingClientRect();
+    var tw = tip.offsetWidth || 200, th = tip.offsetHeight || 42;
+    var left = r.left - tw - 14;
+    if (left < 8) left = r.right + 14;
+    var top = r.top + r.height / 2 - th / 2;
+    top = Math.max(8, Math.min(window.innerHeight - th - 8, top));
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  function showTip() {
+    if (panel.classList.contains('open')) return;
+    placeTip();
+    tip.classList.add('show');
+    clearTimeout(tip._h);
+    tip._h = setTimeout(hideTip, 5000);
+  }
+
+  // 拖拽（拖动不触发点击）
+  var dragging = false, moved = false, ox = 0, oy = 0, sx = 0, sy = 0;
+  fab.addEventListener('pointerdown', function (e) {
+    dragging = true; moved = false; sx = e.clientX; sy = e.clientY;
+    var r = fab.getBoundingClientRect();
+    ox = e.clientX - r.left; oy = e.clientY - r.top;
+    fab.style.transition = 'none'; fab.style.right = 'auto';
+    fab.setPointerCapture(e.pointerId);
+  });
+  fab.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    if (Math.abs(e.clientX - sx) > 4 || Math.abs(e.clientY - sy) > 4) moved = true;
+    var nx = e.clientX - ox, ny = e.clientY - oy;
+    nx = Math.max(8, Math.min(window.innerWidth - fab.offsetWidth - 8, nx));
+    ny = Math.max(8, Math.min(window.innerHeight - fab.offsetHeight - 8, ny));
+    fab.style.left = nx + 'px'; fab.style.top = ny + 'px';
+    if (tip.classList.contains('show')) placeTip();
+  });
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false; fab.style.transition = '';
+    if (!moved) toggleAI(!panel.classList.contains('open'));
+  }
+  fab.addEventListener('pointerup', endDrag);
+  fab.addEventListener('pointercancel', endDrag);
+
+  closeBtn.addEventListener('click', function () { toggleAI(false); });
+  tip.addEventListener('click', function (e) { if (e.target !== tipX) toggleAI(true); });
+  tipX.addEventListener('click', function (e) { e.stopPropagation(); hideTip(); });
+
+  // —— AI 问答：真实对话（流式 SSE）——
+  var aiBody = document.getElementById('aiBody');
+  var aiInput = document.getElementById('aiInput');
+  var aiSend = document.getElementById('aiSend');
+  var aiBusy = false;
+  var aiHistory = [];
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function aiAppend(role, html) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ai-msg' + (role === 'user' ? ' user' : '');
+    var b = document.createElement('div');
+    b.className = 'ai-bubble' + (role === 'user' ? ' user' : '');
+    b.innerHTML = html;
+    aiBody.appendChild(wrap);
+    wrap.appendChild(b);
+    aiBody.scrollTop = aiBody.scrollHeight;
+    return b;
+  }
+
+  async function aiSendMsg() {
+    var text = aiInput.value.trim();
+    if (!text || aiBusy) return;
+    aiInput.value = '';
+    aiAppend('user', escapeHtml(text));
+    aiHistory.push({ role: 'user', content: text });
+
+    aiBusy = true; aiSend.disabled = true; aiInput.disabled = true;
+    var bubble = aiAppend('assistant', '<span class="caret"></span>');
+    var acc = '';
+
+    try {
+      var res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: aiHistory })
+      });
+      if (!res.ok || !res.body) throw new Error('服务异常 ' + res.status);
+      var reader = res.body.getReader();
+      var dec = new TextDecoder();
+      var buf = '';
+      while (true) {
+        var r = await reader.read();
+        if (r.done) break;
+        buf += dec.decode(r.value, { stream: true });
+        var parts = buf.split('\n');
+        buf = parts.pop();
+        for (var i = 0; i < parts.length; i++) {
+          var line = parts[i].trim();
+          if (!line || line.indexOf('data:') !== 0) continue;
+          var data = line.slice(5).trim();
+          if (data === '[DONE]') continue;
+          try {
+            var j = JSON.parse(data);
+            var d = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+            if (d) { acc += d; bubble.textContent = acc; aiBody.scrollTop = aiBody.scrollHeight; }
+          } catch (e) {}
+        }
+      }
+      bubble.textContent = acc || '（暂无回复）';
+      aiHistory.push({ role: 'assistant', content: acc });
+    } catch (e) {
+      bubble.textContent = '出错了：' + e.message;
+    } finally {
+      aiBusy = false; aiSend.disabled = false; aiInput.disabled = false; aiInput.focus();
+    }
+  }
+
+  aiSend.addEventListener('click', aiSendMsg);
+  aiInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') aiSendMsg(); });
+
+  // —— 板块感知（注意力捕捉）——
+  var currentSection = 'about';
+  var sectionObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting && e.intersectionRatio > 0.4) currentSection = e.target.dataset.section || currentSection;
+    });
+  }, { threshold: [0.4] });
+
+  function bindSectionObserver() {
+    document.querySelectorAll('[data-section]').forEach(function (el) { sectionObserver.observe(el); });
+  }
+
+  var SECTION_TIPS = {};
+  var SECTION_CHIPS = {};
+
+  // 闲置时主动表现：停留在某板块 6 秒且未开聊 → 弹出贴合该板块的提示
+  function adaptiveTip() {
+    if (panel.classList.contains('open')) return;
+    var msg = (SECTION_TIPS && SECTION_TIPS[currentSection]) || '有什么问题可以问问我';
+    if (tip.firstChild && tip.firstChild.nodeType === 3) tip.firstChild.nodeValue = msg;
+    else tip.textContent = msg;
+    showTip();
+  }
+  var dwellTimer;
+  function armDwell() {
+    clearTimeout(dwellTimer);
+    dwellTimer = setTimeout(function () {
+      if (!panel.classList.contains('open') && !tip.classList.contains('show')) adaptiveTip();
+    }, 6000);
+  }
+  document.addEventListener('scroll', armDwell, { passive: true });
+  document.addEventListener('pointerdown', armDwell, { passive: true });
+  armDwell();
+
+  function renderChips() {
+    var box = document.getElementById('aiSuggest');
+    if (!box) return;
+    var list = (SECTION_CHIPS && SECTION_CHIPS[currentSection]) || (SECTION_CHIPS && SECTION_CHIPS.about) || [];
+    box.innerHTML = '';
+    list.forEach(function (q) {
+      var c = document.createElement('span');
+      c.className = 'ai-chip';
+      c.textContent = q;
+      c.addEventListener('click', function () { aiInput.value = q; aiSendMsg(); });
+      box.appendChild(c);
+    });
+  }
+
+  // 首次打开面板：贴合当前板块的开场白 + 上报 panel_open
+  var panelOpenedOnce = false;
+  var _origToggle = toggleAI;
+  toggleAI = function (open) {
+    _origToggle(open);
+    if (open) {
+      renderChips();
+      if (!panelOpenedOnce) {
+        panelOpenedOnce = true;
+        var opener = (SECTION_TIPS && SECTION_TIPS[currentSection]) || '关于我的专业、技能、经历都可以问我～';
+        var g = document.getElementById('aiGreeting');
+        if (g) g.textContent = '你好，我是 ' + ((window.__RESUME__ && window.__RESUME__.name) || '我') + ' 的 AI 分身。' + opener;
+      }
+      pingEvent('panel_open', currentSection);
+    }
+  };
+
+  // —— 留资（把注意力转成机会）——
+  var leadToggle = document.getElementById('leadToggle');
+  var leadForm = document.getElementById('aiLead');
+  var leadOk = document.getElementById('leadOk');
+  leadToggle.addEventListener('click', function () {
+    leadForm.hidden = !leadForm.hidden;
+    if (!leadForm.hidden) document.getElementById('leadContact').focus();
+  });
+  document.getElementById('leadCancel').addEventListener('click', function () { leadForm.hidden = true; });
+  document.getElementById('leadSubmit').addEventListener('click', submitLead);
+  async function submitLead() {
+    var contact = document.getElementById('leadContact').value.trim();
+    if (!contact) { toast('至少留个联系方式吧～'); return; }
+    var payload = {
+      name: document.getElementById('leadName').value.trim(),
+      contact: contact,
+      note: document.getElementById('leadNote').value.trim(),
+      section: currentSection,
+      ts: new Date().toISOString(),
+    };
+    try {
+      var r = await fetch('/api/lead', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error('提交失败');
+      leadForm.querySelectorAll('input,textarea').forEach(function (i) { i.value = ''; });
+      leadForm.hidden = true; leadOk.hidden = false;
+      setTimeout(function () { leadOk.hidden = true; }, 4000);
+      pingEvent('lead', currentSection);
+    } catch (e) { toast('提交失败，稍后再试'); }
+  }
+
+  // —— 匿名注意力事件上报（无个人信息）——
+  function pingEvent(type, section) {
+    try {
+      fetch('/api/event', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: type, section: section, ts: Date.now() }),
+        keepalive: true,
+      });
+    } catch (e) {}
+  }
+  var lastPing = '';
+  setInterval(function () {
+    if (currentSection !== lastPing) { lastPing = currentSection; pingEvent('section_view', currentSection); }
+  }, 4000);
+
+  // 随机弹出提示气泡：4 秒后首次，之后每隔 18–36 秒一次
+  setTimeout(function () { showTip(); scheduleTip(); }, 4000);
+  function scheduleTip() {
+    tipTimer = setTimeout(function () { showTip(); scheduleTip(); }, 18000 + Math.random() * 18000);
+  }
+
+  // ===================================================================
+  // 模板化：页面内容由 resume.json 驱动（改配置不改代码）
+  // 直接双击打开（file://）时取不到 json，用下面的内置内容兜底，页面照常显示
+  // ===================================================================
+  var RESUME_FALLBACK = {
+    name: 'llwan', avatarText: 'L', role: '学生', tagline: '本科 · 湖南',
+    location: '中国 · 湖南',
+    email: 'you@example.com',
+    github: 'https://github.com/llwan', githubLabel: 'github.com/llwan',
+    website: 'https://llwan.dev', websiteLabel: 'llwan.dev',
+    available: { enabled: true, text: '随时到岗' },
+    education: {
+      major: '储能材料工程技术',
+      school: '湖南汽车工程职业大学（本科）',
+      years: '2025 — 2026'
+    },
+    about: '湖南汽车工程职业大学（本科）储能材料工程技术专业本科生，目前正在系统学习软件开发与 Web 技术。喜欢动手把学到的知识做成能跑起来的小项目，习惯边做边学。对前端、AI 应用和独立开发有浓厚兴趣，正在持续积累实战经验，随时可以投入到实习或协作项目中。',
+    skills: [
+      { name: 'TypeScript / React', level: 95 },
+      { name: 'Node.js / Express', level: 90 },
+      { name: 'Python / Flask', level: 85 },
+    ],
+    tech: ['React 18', 'Vite', 'Next.js', 'Express', 'better-sqlite3', 'SSE', 'Python', 'Flask', 'Cloudflare', 'Docker', 'Tailwind', 'Git'],
+    greeting: '你好，我是 llwan 的 AI 分身。关于我的专业、技能、经历都可以问我～',
+    sectionTips: {
+      about: '我在系统学软件开发与 Web，想了解我做过什么？点我聊聊～',
+      skills: '看到你在看技能，想听我讲讲 Web / AI 方向的实操吗？',
+      tech: '我对 React、Cloudflare、SSE 这些都在用，想听哪个？',
+      edu: '储能材料 + 自学开发，这个组合有意思，想听我怎么平衡的？',
+      contact: '想进一步聊聊？点我可以随时问，或直接留个联系方式～'
+    },
+    sectionChips: {
+      about: ['你做过哪些项目？', '你最擅长什么方向？', '现在能实习吗？'],
+      skills: ['讲讲你的 React 实战', '你会后端吗？', 'AI 应用做过什么？'],
+      tech: ['用过 Cloudflare 吗？', '为什么喜欢用 SSE？', '技术栈怎么选的？'],
+      edu: ['为什么读储能材料？', '专业和开发怎么兼顾？', '学校有什么资源？'],
+      contact: ['怎么联系你？', '想聊什么岗位？', '可以留个联系方式吗？']
+    },
+    intent: {},
+    projects: []
+  };
+
+  function setText(id, val) {
+    var el = document.getElementById(id);
+    if (el && val != null) el.textContent = val;
+  }
+
+  function renderSkills(list) {
+    var box = document.getElementById('rfSkills');
+    if (!box || !Array.isArray(list)) return;
+    box.innerHTML = '';
+    list.forEach(function (s) {
+      var wrap = document.createElement('div');
+      wrap.className = 'skill';
+      var lab = document.createElement('div');
+      lab.className = 'lab';
+      var n = document.createElement('span'); n.textContent = s.name;
+      var v = document.createElement('span'); v.textContent = (s.level || 0) + '%';
+      lab.appendChild(n); lab.appendChild(v);
+      var bar = document.createElement('div'); bar.className = 'bar';
+      var i = document.createElement('i'); i.style.width = (s.level || 0) + '%';
+      bar.appendChild(i);
+      wrap.appendChild(lab); wrap.appendChild(bar);
+      box.appendChild(wrap);
+      io.observe(wrap);
+    });
+  }
+
+  function renderTech(list) {
+    var box = document.getElementById('rfTech');
+    if (!box || !Array.isArray(list)) return;
+    box.innerHTML = '';
+    list.forEach(function (t) {
+      var s = document.createElement('span');
+      s.className = 'tag'; s.textContent = t;
+      box.appendChild(s);
+    });
+  }
+
+  // 模板预留区块：resume.json 里填了才渲染（求职意向 / 项目）
+  function renderOptionalBlocks(r) {
+    var main = document.querySelector('.main');
+    var footer = main.querySelector('footer');
+    var old;
+
+    old = document.getElementById('rfIntentBlock');
+    if (old) old.remove();
+    if (r.intent && Object.keys(r.intent).length) {
+      var sec = document.createElement('section');
+      sec.className = 'block'; sec.id = 'rfIntentBlock'; sec.dataset.section = 'intent';
+      var h = document.createElement('h2'); h.textContent = '求职意向';
+      var box = document.createElement('div'); box.className = 'intent';
+      Object.keys(r.intent).forEach(function (k) {
+        var it = document.createElement('div'); it.className = 'it';
+        var ke = document.createElement('div'); ke.className = 'k'; ke.textContent = k;
+        var ve = document.createElement('div'); ve.className = 'v'; ve.textContent = r.intent[k];
+        it.appendChild(ke); it.appendChild(ve); box.appendChild(it);
+      });
+      sec.appendChild(h); sec.appendChild(box);
+      main.insertBefore(sec, footer);
+    }
+
+    old = document.getElementById('rfProjectsBlock');
+    if (old) old.remove();
+    if (Array.isArray(r.projects) && r.projects.length) {
+      var ps = document.createElement('section');
+      ps.className = 'block'; ps.id = 'rfProjectsBlock'; ps.dataset.section = 'projects';
+      var ph = document.createElement('h2'); ph.textContent = '项目 / 实践';
+      ps.appendChild(ph);
+      r.projects.forEach(function (p) {
+        var card = document.createElement('div'); card.className = 'proj';
+        var head = document.createElement('div'); head.className = 'ph';
+        var t = document.createElement('div'); t.className = 'pt'; t.textContent = p.name || '';
+        var m = document.createElement('div'); m.className = 'pm'; m.textContent = p.period || '';
+        head.appendChild(t); head.appendChild(m);
+        var d = document.createElement('div'); d.className = 'pd'; d.textContent = p.desc || '';
+        card.appendChild(head); card.appendChild(d);
+        if (Array.isArray(p.stack) && p.stack.length) {
+          var ks = document.createElement('div'); ks.className = 'pk';
+          p.stack.forEach(function (s) {
+            var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = s;
+            ks.appendChild(tg);
+          });
+          card.appendChild(ks);
+        }
+        ps.appendChild(card);
+      });
+      main.insertBefore(ps, footer);
+    }
+  }
+
+  function applyResume(r) {
+    if (!r) return;
+    window.__RESUME__ = r;
+
+    document.title = (r.name || '个人') + ' · 个人简历';
+    var meta = document.querySelector('meta[name="description"]');
+    var edu = r.education || {};
+    if (meta) {
+      meta.setAttribute('content',
+        (r.name || '') + ' 的个人简历 — ' + (edu.school || '') + (edu.major ? edu.major + '专业' : ''));
+    }
+
+    setText('rfAvatar', r.avatarText || (r.name || '?').slice(0, 1).toUpperCase());
+    setText('rfName', r.name);
+    setText('rfRole', r.role);
+    setText('rfTagline', r.tagline);
+
+    var mail = document.getElementById('rfMail');
+    if (mail) {
+      if (r.email) { mail.setAttribute('href', 'mailto:' + r.email); mail.hidden = false; }
+      else { mail.hidden = true; }
+    }
+    setText('rfMailText', r.email);
+    var locWrap = document.getElementById('rfLocWrap');
+    if (locWrap) locWrap.hidden = !r.location;
+    setText('rfLocText', r.location);
+
+    var gh = document.getElementById('rfGh');
+    if (gh) { gh.setAttribute('href', r.github || '#'); gh.hidden = !r.github; }
+    setText('rfGhText', r.githubLabel || (r.github || '').replace(/^https?:\/\//, ''));
+    var web = document.getElementById('rfWeb');
+    if (web) { web.setAttribute('href', r.website || '#'); web.hidden = !r.website; }
+    setText('rfWebText', r.websiteLabel || (r.website || '').replace(/^https?:\/\//, ''));
+
+    var st = document.getElementById('rfStatus');
+    if (st) st.hidden = !(r.available && r.available.enabled);
+    setText('rfStatusText', (r.available && r.available.text) || '随时到岗');
+
+    setText('rfMajor', edu.major);
+    setText('rfSchool', [edu.school, edu.years].filter(Boolean).join(' · '));
+    setText('rfAbout', r.about);
+
+    renderSkills(r.skills);
+    renderTech(r.tech);
+    renderOptionalBlocks(r);
+
+    if (r.sectionTips) SECTION_TIPS = r.sectionTips;
+    if (r.sectionChips) SECTION_CHIPS = r.sectionChips;
+
+    var g = document.getElementById('aiGreeting');
+    if (g && !panelOpenedOnce && r.greeting) g.textContent = r.greeting;
+
+    bindMailCopy();
+    bindSectionObserver();
+    renderChips();
+  }
+
+  applyResume(RESUME_FALLBACK);
+
+  // 经由 dev.mjs / Cloudflare 访问时，拉取真实配置覆盖兜底内容
+  fetch('resume.json', { cache: 'no-store' })
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (r) { if (r) applyResume(r); })
+    .catch(function () { /* file:// 或静态托管无此文件：沿用内置内容 */ });
+</script>
+
+</body>
+</html>

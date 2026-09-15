@@ -1,0 +1,61 @@
+{
+  "_readme": "简历唯一数据源：改这里即可同时更新页面与 AI 分身的知识。改完如需部署到 Cloudflare，跑一次 `node tools/gen-resume.mjs` 重新生成 functions/api/_resume.mjs。",
+
+  "name": "llwan",
+  "avatarText": "L",
+  "role": "学生",
+  "tagline": "本科 · 湖南",
+  "location": "中国 · 湖南",
+  "email": "you@example.com",
+  "github": "https://github.com/llwan",
+  "githubLabel": "github.com/llwan",
+  "website": "https://llwan.dev",
+  "websiteLabel": "llwan.dev",
+
+  "available": {
+    "enabled": true,
+    "text": "随时到岗",
+    "detail": "可接受实习 / 协作"
+  },
+
+  "education": {
+    "major": "储能材料工程技术",
+    "school": "湖南汽车工程职业大学（本科）",
+    "years": "2025 — 2026"
+  },
+
+  "about": "湖南汽车工程职业大学（本科）储能材料工程技术专业本科生，目前正在系统学习软件开发与 Web 技术。喜欢动手把学到的知识做成能跑起来的小项目，习惯边做边学。对前端、AI 应用和独立开发有浓厚兴趣，正在持续积累实战经验，随时可以投入到实习或协作项目中。",
+
+  "skills": [
+    { "name": "TypeScript / React", "level": 95 },
+    { "name": "Node.js / Express", "level": 90 },
+    { "name": "Python / Flask", "level": 85 }
+  ],
+
+  "tech": [
+    "React 18", "Vite", "Next.js", "Express", "better-sqlite3", "SSE",
+    "Python", "Flask", "Cloudflare", "Docker", "Tailwind", "Git"
+  ],
+
+  "greeting": "你好，我是 llwan 的 AI 分身。关于我的专业、技能、经历都可以问我～",
+
+  "sectionTips": {
+    "about": "我在系统学软件开发与 Web，想了解我做过什么？点我聊聊～",
+    "skills": "看到你在看技能，想听我讲讲 Web / AI 方向的实操吗？",
+    "tech": "我对 React、Cloudflare、SSE 这些都在用，想听哪个？",
+    "edu": "储能材料 + 自学开发，这个组合有意思，想听我怎么平衡的？",
+    "contact": "想进一步聊聊？点我可以随时问，或直接留个联系方式～"
+  },
+
+  "sectionChips": {
+    "about": ["你做过哪些项目？", "你最擅长什么方向？", "现在能实习吗？"],
+    "skills": ["讲讲你的 React 实战", "你会后端吗？", "AI 应用做过什么？"],
+    "tech": ["用过 Cloudflare 吗？", "为什么喜欢用 SSE？", "技术栈怎么选的？"],
+    "edu": ["为什么读储能材料？", "专业和开发怎么兼顾？", "学校有什么资源？"],
+    "contact": ["怎么联系你？", "想聊什么岗位？", "可以留个联系方式吗？"]
+  },
+
+  "_optional_blocks": "下面两块是模板预留位：填了内容才会渲染对应区块，留空则页面不显示（避免占位噪音）。",
+  "intent": {},
+  "projects": []
+}
