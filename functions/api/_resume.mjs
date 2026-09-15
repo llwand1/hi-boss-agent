@@ -1,4 +1,4 @@
-// 自动生成，请勿手改 —— 数据源：resume.json
+// 自动生成，请勿手改 —— 数据源：public/resume.json
 // 重新生成：node tools/gen-resume.mjs
 
 export const RESUME = {

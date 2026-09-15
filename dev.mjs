@@ -2,7 +2,7 @@
 // 作用：① 托管静态简历页面  ② /api/chat 代理到 Agnes（OpenAI 兼容 SSE）
 //      ③ /api/lead 留资落盘  ④ /api/event 匿名注意力事件落盘  ⑤ /api/admin 主人侧看板数据
 // 配置从 .env.local 或进程环境变量读取：AI_API_BASE / AI_API_KEY / AI_MODEL / ADMIN_TOKEN / HOST / PORT
-// 简历内容来自 resume.json（改它即可，无需改代码）
+// 简历内容来自 public/resume.json（改它即可，无需改代码）
 // 启动：node dev.mjs   （默认 http://127.0.0.1:8788，仅本机可访问）
 
 import http from 'node:http';
@@ -29,6 +29,11 @@ const PORT = Number(process.env.PORT) || 8788;
 // 确需局域网调试（如手机预览）时显式设 HOST=0.0.0.0，并知悉上述数据将对同网段公开。
 const HOST = process.env.HOST || '127.0.0.1';
 
+// 发布目录 = 真正会被部署上线的文件（Cloudflare Pages 的「构建输出目录」也填 public）。
+// 源码、docs/、dev.mjs、shared/、tools/ 都留在仓库根而不在 public 下，
+// 所以它们不会随站点公开 —— 这是仓库私有化后源码不被泄露的关键。
+const STATIC_ROOT = path.join(ROOT, 'public');
+
 // 静态资源白名单（deny by default）：新增前端资源请在此登记，未登记的一律 404。
 // 之所以用白名单而非黑名单——黑名单漏一项就会把 .env.local / leads.json / 源码直接暴露出去。
 const PUBLIC_FILES = new Set(['/index.html', '/admin.html', '/resume.json']);
@@ -46,7 +51,7 @@ const allowChat = createRateLimiter();
 let SYSTEM_PROMPT = '你是简历站点的 AI 助手，用中文简洁回答访客问题。';
 function loadSystemPrompt() {
   try {
-    const r = JSON.parse(readFileSync(path.join(ROOT, 'resume.json'), 'utf8'));
+    const r = JSON.parse(readFileSync(path.join(STATIC_ROOT, 'resume.json'), 'utf8'));
     SYSTEM_PROMPT = buildSystemPrompt(r);
   } catch (e) {
     console.warn('[dev] 读取 resume.json 失败（' + e.message + '），使用兜底提示词');
@@ -221,8 +226,8 @@ const server = http.createServer(async (req, res) => {
   const isPublic = PUBLIC_FILES.has(rel) || PUBLIC_DIRS.some(function (d) { return rel.indexOf(d) === 0; });
   if (!isPublic) { res.writeHead(404); res.end('not found'); return; }
 
-  const fp = path.resolve(ROOT, '.' + rel);
-  if (fp !== ROOT && fp.indexOf(ROOT + path.sep) !== 0) { res.writeHead(403); res.end('forbidden'); return; }
+  const fp = path.resolve(STATIC_ROOT, '.' + rel);
+  if (fp !== STATIC_ROOT && fp.indexOf(STATIC_ROOT + path.sep) !== 0) { res.writeHead(403); res.end('forbidden'); return; }
   try {
     const buf = await readFile(fp);
     const ext = path.extname(fp).toLowerCase();

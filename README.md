@@ -5,19 +5,28 @@
 
 ## 目录结构
 
+**关键约定：只有 `public/` 会被部署上线**（Cloudflare Pages 的「构建输出目录」填 `public`）。
+源码、`docs/`、`dev.mjs`、`shared/`、`tools/` 都留在仓库根，因此不会随站点公开 ——
+仓库设为私有后，这些内容就不会泄露。
+
 ```
-index.html                简历页面（AI 面板 + 注意力捕捉；内容由 resume.json 渲染）
-admin.html                主人侧线索看板（谁看了哪块、谁留了联系方式）
-resume.json               ★ 简历唯一数据源：改这里，页面与 AI 同步更新
-shared/prompt.mjs         AI 系统提示词生成器（全项目唯一定义，前端/本地/CF 共用）
-tools/gen-resume.mjs      把 resume.json 固化成 CF 可直接 import 的模块
-dev.mjs                   本地零依赖服务：托管页面 + 代理 AI + 落盘 leads/events
-functions/api/chat.js     Pages Functions：AI 对话代理（OpenAI 兼容 SSE）
-functions/api/lead.js     留资接口
-functions/api/event.js    匿名注意力事件接口
-functions/api/admin.js    看板数据接口（需 ADMIN_TOKEN，防泄露）
-functions/api/_resume.mjs 自动生成（由 tools/gen-resume.mjs 从 resume.json 生成）
-functions/api/_guard.mjs  对话接口准入闸门：同源校验 + 输入整形 + 限流（本地与 CF 共用，非路由）
+public/                    ★ 发布目录：只有这里的内容会出现在线上
+  index.html               简历页面（AI 面板 + 注意力捕捉；内容由 resume.json 渲染）
+  admin.html               主人侧线索看板（谁看了哪块、谁留了联系方式）
+  resume.json              ★ 简历唯一数据源：改这里，页面与 AI 同步更新
+  _routes.json             仅 /api/* 调用 Functions，静态资源走无限免费的静态通道
+
+functions/api/chat.js      Pages Functions：AI 对话代理（OpenAI 兼容 SSE）
+functions/api/lead.js      留资接口
+functions/api/event.js     匿名注意力事件接口
+functions/api/admin.js     看板数据接口（需 ADMIN_TOKEN，防泄露）
+functions/api/_guard.mjs   对话准入闸门：同源校验 + 输入整形 + 限流（本地与 CF 共用，非路由）
+functions/api/_resume.mjs  自动生成（由 tools/gen-resume.mjs 从 public/resume.json 生成）
+
+shared/prompt.mjs          AI 系统提示词生成器（全项目唯一定义，本地与 CF 共用）
+tools/gen-resume.mjs       把 public/resume.json 固化成 CF 可直接 import 的模块
+dev.mjs                    本地零依赖服务：托管页面 + 代理 AI + 落盘 leads/events
+docs/                      设计文档（SPEC / ADR）—— 不随站点公开
 ```
 
 ## 快速开始（本地）
@@ -40,11 +49,11 @@ node dev.mjs
   ADMIN_TOKEN=你的看板口令   # 可选，本地不设则看板免口令
   ```
 
-改完 `resume.json` 刷新页面即可看到新内容；AI 侧提示词也**热更新**，无需重启服务。
+改完 `public/resume.json` 刷新页面即可看到新内容；AI 侧提示词也**热更新**，无需重启服务。
 
 ## 改简历内容（只需动一个文件）
 
-编辑 `resume.json`：姓名、头像字、身份、所在地、联系方式、教育、关于我、技能、技术栈、AI 开场白、各板块的主动话术与推荐问题。
+编辑 `public/resume.json`：姓名、头像字、身份、所在地、联系方式、教育、关于我、技能、技术栈、AI 开场白、各板块的主动话术与推荐问题。
 
 预留的可选区块（填了才显示，留空不占版面）：
 
@@ -61,7 +70,7 @@ node tools/gen-resume.mjs
 
 ## 线索看板
 
-- 打开 `/admin.html`，填看板口令（线上为 `ADMIN_TOKEN`，本地未设置则留空）。
+- 打开 `/admin.html`，填看板口令（线上为 `ADMIN_TOKEN`；本地未配置则用启动日志里打印的临时口令）。
 - 显示：留联人数、打开对话次数、板块热度排行、对话→留联转化率、线索明细（时间/称呼/联系方式/想聊方向/当时在看哪块）。
 - 每 30 秒自动刷新。
 
@@ -75,15 +84,31 @@ node tools/gen-resume.mjs
 
 ## 部署到 Cloudflare Pages（免费）
 
-1. 本目录推到 GitHub（仓库如 `resume`）。
+1. 推到 GitHub（**建议设为私有仓库** —— 私有后 `docs/`、`dev.mjs`、`README.md` 都不会外泄）。仓库已初始化，首次推送：
+   ```bash
+   git remote add origin https://github.com/<你的账号>/resume.git
+   git push -u origin main
+   ```
 2. 先本地执行 `node tools/gen-resume.mjs` 并提交生成的 `functions/api/_resume.mjs`。
+   **改了 `public/resume.json` 就必须重跑一次**，否则线上仍是旧内容 —— 这一步没有自动校验，最容易忘。
 3. Cloudflare 控制台 → **Workers & Pages → 创建 → Pages → 连接 Git 仓库**。
-4. 构建设置：**构建命令留空，输出目录填 `/`**（纯静态，无需 build）。
+4. 构建设置：**构建命令留空，输出目录填 `public`**（纯静态，无需 build）。
+   ⚠️ `functions/` 必须留在**仓库根**，不能放进 `public/`，否则 Functions 不会被识别。
 5. 项目 → **设置 → 环境变量**（生产）添加：
    - `AI_API_BASE` / `AI_API_KEY` / `AI_MODEL`
    - `ADMIN_TOKEN`（**强烈建议设置**，否则看板会禁用；不设则 `/api/admin` 返回 403 以免访客联系方式泄露）
 6. 需要线上留存线索：设置 → 函数 → **KV 命名空间绑定**，变量名 `LEADS` 和 `EVENTS`（可指向同一个）。
+   不绑定不会报错，但会静默降级成「只回 ok 不落库」，线索直接丢。
 7. 重新部署，得到 `xxx.pages.dev`；自定义域可在项目里绑定（免费套餐支持）。
+
+### 部署后必做的一次冒烟测试
+
+| 检查 | 期望 |
+|---|---|
+| 打开首页 | 简历正常渲染；直接双击本地 `public/index.html` 时 AI 不可用属正常 |
+| 与 AI 对话 | 能流式回复（若 403 说明同源校验误伤，需看 `Origin` 与 `Host` 是否一致） |
+| 留资 + 看板 | 留一条测试线索，看板能读到（读不到＝KV 未绑定） |
+| `GET /README.md`、`/dev.mjs`、`/docs/...` | **应当 404**（发布目录为 `public` 时天然如此，这是验证发布目录配对的关键一步） |
 
 ## 安全基线（改动前请先读）
 
@@ -91,6 +116,7 @@ node tools/gen-resume.mjs
 
 | 项 | 规则 | 为什么 |
 |---|---|---|
+| 发布目录 | 只发布 `public/`（CF 输出目录填 `public`，`dev.mjs` 的静态根也是 `public/`）；源码、`docs/`、`dev.mjs`、`tools/` 留在仓库根 | 输出目录填 `/` 会把 README、`dev.mjs`、`docs/SPEC`、`tools/` 一并发布到站点上 |
 | 静态资源 | `dev.mjs` 只放行 `PUBLIC_FILES` 白名单（`/index.html`、`/admin.html`、`/resume.json`），其余一律 404 | 黑名单漏一项就会把 `.env.local`（API Key）、`leads.json`（访客联系方式）、源码直接暴露。新增前端资源请在 `dev.mjs` 的 `PUBLIC_FILES` 里登记 |
 | 监听地址 | 默认 `127.0.0.1` | 绑 `0.0.0.0` 时同网段任何人可下载上述文件 |
 | 看板 | 本地与线上都 fail-closed，口令不匹配即 401 | 线上未配 `ADMIN_TOKEN` 时直接 403，防访客数据泄露 |
@@ -104,6 +130,7 @@ node tools/gen-resume.mjs
 
 ## 说明
 
-- 前端走同域 `/api/*`，无 CORS 问题。**直接双击 `index.html` 打开时 AI 与看板不可用属正常**（会用内置兜底内容展示简历，不会白屏）。
+- 前端走同域 `/api/*`，无 CORS 问题。**直接双击 `public/index.html` 打开时 AI 与看板不可用属正常**（会用内置兜底内容展示简历，不会白屏）。
 - 密钥只存环境变量 / `.env.local` / `.dev.vars`，不进代码；`.env.local`、`leads.json`、`events.json` 已被 gitignore。
+- `leads.json` / `events.json` 是**本地开发**的落盘文件，留在仓库根（不在 `public/` 下，不会被发布）；线上数据走 KV。
 - 换模型或接非 OpenAI 兼容 API：改 `functions/api/chat.js` 里的 fetch 部分即可。
