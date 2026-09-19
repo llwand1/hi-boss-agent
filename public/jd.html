@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JD 自适应见面语 · 简历 Agent</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #fff; --ink: #1d1d1f; --ink-soft: #6e6e73;
+    --line: #e6e6ea; --brand: #007aff; --brand-soft: #e8f1ff;
+    --green: #1a8a3c; --green-soft: #eafaf0;
+    --amber: #b25e09; --amber-soft: #fff6e8;
+    --red: #b42318; --red-soft: #fff2f2;
+    --radius: 14px; --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 26px 20px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 9px; }
+  h1::before { content: ""; width: 4px; height: 20px; border-radius: 2px; background: var(--brand); }
+  .sub { color: var(--ink-soft); font-size: 12.5px; }
+  .acts { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 10px; padding: 8px 15px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); font-weight: 600; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .card {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 20px 22px; margin-bottom: 18px;
+  }
+  .card > h2 { font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card > h2 .tag { font-size: 11.5px; font-weight: 500; color: var(--ink-soft); background: var(--bg); padding: 2px 8px; border-radius: 999px; }
+  textarea {
+    width: 100%; min-height: 190px; resize: vertical; border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 15px; font-size: 13.5px; font-family: inherit; color: var(--ink); background: #fff; line-height: 1.7;
+  }
+  textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .hint { color: var(--ink-soft); font-size: 12px; margin-left: auto; }
+  .err { background: var(--red-soft); color: var(--red); border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; }
+  .note { background: var(--amber-soft); color: var(--amber); border: 1px solid #f5deb8; border-radius: 10px; padding: 9px 13px; font-size: 12.5px; margin-bottom: 14px; line-height: 1.6; }
+  .empty { color: var(--ink-soft); font-size: 13px; padding: 6px 0; }
+  code { background: var(--bg); padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+  a.back { color: var(--brand); font-size: 13px; text-decoration: none; }
+  a.back:hover { text-decoration: underline; }
+
+  /* 评分区 */
+  .verdict-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .score { font-size: 46px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .score small { font-size: 14px; font-weight: 600; color: var(--ink-soft); margin-left: 3px; }
+  .vmeta { flex: 1 1 260px; min-width: 220px; }
+  .verdict { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 12px; border-radius: 999px; }
+  .v-投 { background: var(--green-soft); color: var(--green); }
+  .v-谨慎 { background: var(--amber-soft); color: var(--amber); }
+  .v-不建议 { background: var(--red-soft); color: var(--red); }
+  .sc-投 { color: var(--green); } .sc-谨慎 { color: var(--amber); } .sc-不建议 { color: var(--red); }
+  .bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 10px; }
+  .bar > i { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .7s cubic-bezier(.2,.7,.3,1); }
+  .bar > i.b-投 { background: var(--green); } .bar > i.b-谨慎 { background: var(--amber); } .bar > i.b-不建议 { background: var(--red); }
+  .rationale { color: var(--ink-soft); font-size: 12.5px; margin-top: 10px; }
+
+  /* 招呼语 */
+  .greet { position: relative; background: var(--brand-soft); border: 1px solid #cfe4ff; border-radius: 12px; padding: 16px 18px; }
+  .greet p { font-size: 15px; line-height: 1.8; white-space: pre-wrap; }
+  .greet .copy { position: absolute; top: 10px; right: 10px; font-size: 12px; padding: 5px 11px; }
+  .sec-title { font-size: 13px; font-weight: 700; margin: 18px 0 9px; color: var(--ink); }
+  ul.points { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  ul.points li { display: flex; gap: 9px; font-size: 13.5px; align-items: flex-start; }
+  ul.points li svg { flex: none; margin-top: 4px; }
+  .gap li { color: var(--red); }
+  .gap li svg path { stroke: var(--red); }
+  .spin { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 50%; display: inline-block; vertical-align: -2px; margin-right: 7px; animation: sp .7s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  @media (max-width: 640px) { .wrap { padding: 18px 14px 40px; } .score { font-size: 38px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>JD 自适应见面语</h1>
+      <div class="sub">粘一份岗位 JD，生成匹配度判断 + 可直接投递的招呼语（只按你的真实简历，不编造）</div>
+    </div>
+    <div class="acts">
+      <a class="back" href="/">← 回简历</a>
+      <a class="back" href="/admin.html">线索看板 →</a>
+    </div>
+  </header>
+
+  <div id="err"></div>
+
+  <div class="card">
+    <h2>岗位 JD <span class="tag">整段粘进来即可</span></h2>
+    <textarea id="jd" placeholder="把招聘网站上的岗位描述整段复制粘贴到这里，例如：岗位职责、任职要求、加分项……"></textarea>
+    <div class="row">
+      <button class="btn primary" id="go">生成见面语</button>
+      <button class="btn" id="demo">填入示例 JD</button>
+      <button class="btn" id="preview">预览版式（示例）</button>
+      <button class="btn" id="clear">清空</button>
+      <span class="hint">只使用你简历里真实存在的信息；JD 缺什么会如实列在「缺口」里。</span>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <h2>判断结果 <span class="tag" id="modelTag">—</span></h2>
+    <div id="previewNote" class="note" style="display:none">版式预览：下面是<b>示例数据</b>，未调用模型、不代表真实判定。点「生成见面语」才会按你的真实简历生成。</div>
+    <div class="verdict-head">
+      <div class="score" id="score">—<small>/100</small></div>
+      <div class="vmeta">
+        <span class="verdict" id="verdict">—</span>
+        <div class="bar"><i id="barFill"></i></div>
+        <div class="rationale" id="rationale"></div>
+      </div>
+    </div>
+
+    <div class="sec-title">可直接投递的打招呼语</div>
+    <div class="greet">
+      <button class="btn copy" id="copy">复制</button>
+      <p id="greeting"></p>
+    </div>
+
+    <div id="emphWrap" style="display:none">
+      <div class="sec-title">该向对方突出的点</div>
+      <ul class="points" id="emphasize"></ul>
+    </div>
+
+    <div id="gapWrap" style="display:none">
+      <div class="sec-title">如实告知的缺口</div>
+      <ul class="points gap" id="gaps"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  var $ = function (id) { return document.getElementById(id); };
+  var CHECK = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-7" stroke="#1a8a3c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var WARN = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5v5" stroke="#b42318" stroke-width="1.8" stroke-linecap="round"/><circle cx="7" cy="10.8" r="1" fill="#b42318"/></svg>';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function showErr(msg) { $('err').innerHTML = '<div class="err">' + esc(msg) + '</div>'; }
+  function clearErr() { $('err').innerHTML = ''; }
+
+  var DEMO = '岗位：前端开发实习生（AI 应用方向）\n公司：某互联网公司\n\n岗位职责：\n1. 参与公司 AI 助手类产品的前端开发，负责对话界面、流式输出等交互实现；\n2. 与后端协作，基于 SSE / WebSocket 对接模型接口；\n3. 参与产品体验优化，打磨细节交互。\n\n任职要求：\n1. 熟悉 JavaScript / TypeScript，了解 React 或 Vue；\n2. 了解 HTTP、前后端交互基本概念；\n3. 有个人项目或开源作品者优先；\n4. 每周可到岗 4 天以上，实习期 3 个月以上。\n\n加分项：\n- 用过 Cloudflare / Vercel 等 Serverless 平台；\n- 对 AI 应用有自己的理解，写过相关小工具。';
+
+  // 版式预览用示例（明确标注，不代表真实判定）
+  var SAMPLE = {
+    score: 78,
+    verdict: '投',
+    greeting: '你好，看到贵司在招前端实习生（AI 应用方向）。我自己做过一个「会打招呼的简历 Agent」：对话界面和流式输出都是手写的，整站跑在 Cloudflare 上，和这个岗位要的 SSE 对接、体验打磨正好对得上。我随时能到岗、也愿意长期实习，方便聊聊吗？',
+    emphasize: [
+      '做过 AI 助手类前端（简历 Agent），对话界面与流式输出为手写实现，直接对应岗位职责',
+      'Cloudflare Pages 实战经验，命中岗位列的「加分项」',
+      '零依赖手写过完整产品，能啃交互细节'
+    ],
+    gaps: [
+      '岗位要求 React，简历写的是「了解」，缺企业级项目背书，建议如实说明而非夸大',
+      '未说明能否满足「实习期 3 个月以上」，投递前需自己确认'
+    ],
+    rationale: '技术方向与项目经历高度吻合，主要短板是缺企业级协作经历，故给 78 而非更高。'
+  };
+
+  var lastGreeting = '';
+
+  async function generate() {
+    var jd = $('jd').value.trim();
+    if (!jd) { showErr('请先粘入一份 JD'); return; }
+    clearErr();
+    var btn = $('go');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span>生成中…';
+    try {
+      var res = await fetch('/api/jd-greeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jd: jd }),
+      });
+      var data = await res.json();
+      if (!res.ok || data.error) {
+        showErr(data.error || ('请求失败 ' + res.status));
+        return;
+      }
+      render(data);
+    } catch (e) {
+      showErr('调用失败：' + e.message + '（本工具需经由 dev.mjs / Cloudflare 访问，直接双击打开无效）');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '生成见面语';
+    }
+  }
+
+  function render(d, isPreview) {
+    $('resultCard').style.display = '';
+    $('previewNote').style.display = isPreview ? '' : 'none';
+    $('modelTag').textContent = isPreview ? '示例预览（未调用模型）' : '按真实简历判定';
+    var sc = d.score == null ? 0 : d.score;
+    var v = d.verdict || '—';
+    var scoreEl = $('score');
+    scoreEl.className = 'score sc-' + v;
+    scoreEl.innerHTML = (d.score == null ? '—' : d.score) + '<small>/100</small>';
+    var vEl = $('verdict');
+    vEl.className = 'verdict v-' + v;
+    vEl.textContent = v;
+    var fill = $('barFill');
+    fill.className = 'b-' + v;
+    fill.style.width = '0';
+    setTimeout(function () { fill.style.width = sc + '%'; }, 30);
+    $('rationale').textContent = d.rationale || '';
+
+    lastGreeting = d.greeting || '';
+    $('greeting').textContent = lastGreeting || '（模型未给出招呼语）';
+
+    var em = d.emphasize || [];
+    $('emphWrap').style.display = em.length ? '' : 'none';
+    $('emphasize').innerHTML = em.map(function (t) { return '<li>' + CHECK + '<span>' + esc(t) + '</span></li>'; }).join('');
+
+    var gp = d.gaps || [];
+    $('gapWrap').style.display = gp.length ? '' : 'none';
+    $('gaps').innerHTML = gp.length
+      ? gp.map(function (t) { return '<li>' + WARN + '<span>' + esc(t) + '</span></li>'; }).join('')
+      : '<li>' + CHECK + '<span>没有明显硬缺口</span></li>';
+
+    $('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('go').addEventListener('click', generate);
+  $('demo').addEventListener('click', function () { $('jd').value = DEMO; });
+  $('preview').addEventListener('click', function () { clearErr(); render(SAMPLE, true); });
+  $('clear').addEventListener('click', function () { $('jd').value = ''; clearErr(); $('resultCard').style.display = 'none'; });
+  $('copy').addEventListener('click', async function () {
+    if (!lastGreeting) return;
+    try { await navigator.clipboard.writeText(lastGreeting); }
+    catch { /* 非安全上下文忽略 */ }
+    var b = $('copy'); b.textContent = '已复制';
+    setTimeout(function () { b.textContent = '复制'; }, 1400);
+  });
+  $('jd').addEventListener('keydown', function (e) { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') generate(); });
+</script>
+</body>
+</html>

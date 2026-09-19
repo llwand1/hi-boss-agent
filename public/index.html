@@ -148,6 +148,16 @@
   .proj .pd { font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; }
   .proj .pk { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
   .proj .pk .tag { background: var(--bg); color: var(--ink-soft); }
+  /* 关键取舍（resume.json 的 projects[].decisions，可选） */
+  .proj .pdec { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 10px; }
+  .proj .pdec-t { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 4px; letter-spacing: .3px; }
+  .proj .pdec-i { font-size: 13px; line-height: 1.5; margin-top: 6px; padding-left: 13px; position: relative; }
+  .proj .pdec-i::before {
+    content: ""; position: absolute; left: 0; top: 7px;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--brand);
+  }
+  .proj .pdec-c { color: var(--ink); }
+  .proj .pdec-w { color: var(--ink-soft); font-size: 12.5px; margin-top: 1px; }
 
   /* AI 问答 · 右上角可拖动唤起 */
   .ai-fab {
@@ -738,6 +748,8 @@
       skills: '看到你在看技能，想听我讲讲 Web / AI 方向的实操吗？',
       tech: '我对 React、Cloudflare、SSE 这些都在用，想听哪个？',
       edu: '储能材料 + 自学开发，这个组合有意思，想听我怎么平衡的？',
+      intent: '我在找前端 / 全栈 / AI 应用方向的实习，坐标长沙·株洲、随时能到岗，想聊聊吗？',
+      projects: '这个页面本身就是我的作品，想听我讲讲里面做过哪些取舍吗？',
       contact: '想进一步聊聊？点我可以随时问，或直接留个联系方式～'
     },
     sectionChips: {
@@ -745,10 +757,30 @@
       skills: ['讲讲你的 React 实战', '你会后端吗？', 'AI 应用做过什么？'],
       tech: ['用过 Cloudflare 吗？', '为什么喜欢用 SSE？', '技术栈怎么选的？'],
       edu: ['为什么读储能材料？', '专业和开发怎么兼顾？', '学校有什么资源？'],
+      intent: ['想找什么岗位？', '能实习多久？', '接受远程吗？'],
+      projects: ['这站是你自己做的？', '用了什么技术？', '最难的地方在哪？'],
       contact: ['怎么联系你？', '想聊什么岗位？', '可以留个联系方式吗？']
     },
-    intent: {},
-    projects: []
+    intent: {
+      '目标岗位': '前端 / 全栈 / AI 应用开发（实习）',
+      '期望城市': '长沙 · 株洲 / 远程',
+      '到岗时间': '随时'
+    },
+    projects: [
+      {
+        name: '会打招呼的简历 Agent',
+        period: '2026.08 — 至今',
+        desc: '就是你正在浏览的这个页面。它把一份静态简历做成会主动打招呼的 AI 分身：访客能像聊天一样了解我，它只按我的真实信息作答，答不上来会主动说「让我本人回你」，并把访客的注意力整理成线索回传给我。整站零构建、零框架依赖，跑在 Cloudflare 免费额度上。',
+        stack: ['Cloudflare Pages Functions', 'SSE 流式输出', '原生 JS（零依赖）', 'OpenAI 兼容 API'],
+        decisions: [
+          { choice: '主动开口最多 2 次，且只在访客真正停下来看时才开口', why: 'HR 常同时刷好几份简历，频繁弹窗会变成骚扰' },
+          { choice: '答不上来直接说「让我本人回你」，不硬编', why: '它代表的是一个真人，诚实比显得无所不知更重要' },
+          { choice: '简历内容按需加载，而不是每轮都整份塞给模型', why: '首字响应更快，访客等待更短' },
+          { choice: '访客留下的联系方式，没有口令一律看不到', why: '保护访客隐私，不让这个站变成数据泄露源' },
+          { choice: '手写最小实现，不引入现成的 AI 框架', why: '这里只需要几个动作，依赖越少越稳、也越快' }
+        ]
+      }
+    ]
   };
 
   function setText(id, val) {
@@ -833,6 +865,26 @@
             ks.appendChild(tg);
           });
           card.appendChild(ks);
+        }
+        // 关键取舍（可选）：让访客看到「为什么这么做」，而不只是「做了什么」
+        if (Array.isArray(p.decisions) && p.decisions.length) {
+          var dc = document.createElement('div'); dc.className = 'pdec';
+          var dt = document.createElement('div'); dt.className = 'pdec-t'; dt.textContent = '关键取舍';
+          dc.appendChild(dt);
+          p.decisions.forEach(function (d) {
+            var choice = typeof d === 'string' ? d : ((d && d.choice) || '');
+            var why = typeof d === 'string' ? '' : ((d && d.why) || '');
+            if (!choice) return;
+            var it = document.createElement('div'); it.className = 'pdec-i';
+            var ce = document.createElement('div'); ce.className = 'pdec-c'; ce.textContent = choice;
+            it.appendChild(ce);
+            if (why) {
+              var we = document.createElement('div'); we.className = 'pdec-w'; we.textContent = why;
+              it.appendChild(we);
+            }
+            dc.appendChild(it);
+          });
+          card.appendChild(dc);
         }
         ps.appendChild(card);
       });

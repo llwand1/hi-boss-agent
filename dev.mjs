@@ -10,8 +10,9 @@ import { readFile } from 'node:fs/promises';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
-import { buildSystemPrompt } from './shared/prompt.mjs';
+import { buildSystemPrompt, buildJdGreetingPrompt } from './shared/prompt.mjs';
 import { LIMITS, isSameOrigin, sanitizeMessages, createRateLimiter, safeEqual } from './functions/api/_guard.mjs';
+import { MAX_JD_CHARS, extractJson, normalizeJdGreeting } from './functions/api/_jd.mjs';
 
 // 读取 .env.local（不进 git）
 if (existsSync('.env.local')) {
@@ -36,7 +37,7 @@ const STATIC_ROOT = path.join(ROOT, 'public');
 
 // 静态资源白名单（deny by default）：新增前端资源请在此登记，未登记的一律 404。
 // 之所以用白名单而非黑名单——黑名单漏一项就会把 .env.local / leads.json / 源码直接暴露出去。
-const PUBLIC_FILES = new Set(['/index.html', '/admin.html', '/resume.json']);
+const PUBLIC_FILES = new Set(['/index.html', '/admin.html', '/jd.html', '/resume.json']);
 const PUBLIC_DIRS = []; // 例：'/assets/'
 
 // 看板口令：未配置则生成本次运行有效的临时口令并打印，绝不静默放行
@@ -160,6 +161,81 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       res.writeHead(500);
       res.end('proxy error: ' + e.message);
+    }
+    return;
+  }
+
+  // ===== /api/jd-greeting  JD 自适应见面语（求职者本人使用）=====
+  // 输入 { jd }；输出严格 JSON：匹配度 + 招呼语 + 该突出的点 + 缺口。
+  // 复用与 chat 同一套闸门与同一份简历事实；非流式，便于前端直接渲染。
+  if (req.method === 'POST' && u.pathname === '/api/jd-greeting') {
+    if (!isSameOrigin(req.headers.origin, req.headers.host)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '来源不被允许' }));
+      return;
+    }
+    if (!allowChat(req.socket.remoteAddress || 'unknown')) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
+      return;
+    }
+
+    let raw = '';
+    for await (const c of req) raw += c;
+    let data;
+    try { data = JSON.parse(raw); } catch { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '请求格式错误' })); return; }
+
+    const jd = String((data && data.jd) || '').trim();
+    if (!jd) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '缺少 JD 内容' })); return; }
+    if (jd.length > MAX_JD_CHARS) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'JD 过长（上限 ' + MAX_JD_CHARS + ' 字）' })); return; }
+
+    const base = (process.env.AI_API_BASE || '').replace(/\/$/, '');
+    if (!base) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '缺少 AI_API_BASE，请在 .env.local 配置模型接口地址' })); return; }
+
+    // 热更新：每次请求重读 resume.json（与 chat 一致，改完无需重启）
+    let resume = null;
+    try { resume = JSON.parse(readFileSync(path.join(STATIC_ROOT, 'resume.json'), 'utf8')); } catch { /* 用兜底提示词 */ }
+    const prompt = resume ? buildJdGreetingPrompt(resume, jd) : '你是求职顾问，请针对下面的 JD 输出约定 JSON：\n' + jd;
+
+    const payload = {
+      model: process.env.AI_MODEL || 'agnes-2.5-flash',
+      messages: [
+        { role: 'system', content: prompt },
+        { role: 'user', content: '请按契约输出 JSON。' },
+      ],
+      stream: false,
+      temperature: 0.4,
+      max_tokens: Math.min(LIMITS.maxTokens * 2, 1200),
+    };
+
+    try {
+      const upstream = await fetch(base + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (process.env.AI_API_KEY || '') },
+        body: JSON.stringify(payload),
+      });
+      const txt = await upstream.text();
+      if (!upstream.ok) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '上游模型错误 ' + upstream.status, detail: txt.slice(0, 300) }));
+        return;
+      }
+      let content = '';
+      try {
+        const j = JSON.parse(txt);
+        content = j && j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content : '';
+      } catch { content = txt; }
+      const parsed = normalizeJdGreeting(extractJson(content));
+      if (!parsed) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '模型未返回可解析的 JSON', raw: String(content || '').slice(0, 500) }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(parsed));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'proxy error: ' + e.message }));
     }
     return;
   }

@@ -13,18 +13,23 @@
 public/                    ★ 发布目录：只有这里的内容会出现在线上
   index.html               简历页面（AI 面板 + 注意力捕捉；内容由 resume.json 渲染）
   admin.html               主人侧线索看板（谁看了哪块、谁留了联系方式）
+  jd.html                  主人侧工具：JD 自适应见面语工作台（粘 JD → 匹配度 + 招呼语）
   resume.json              ★ 简历唯一数据源：改这里，页面与 AI 同步更新
   _routes.json             仅 /api/* 调用 Functions，静态资源走无限免费的静态通道
 
 functions/api/chat.js      Pages Functions：AI 对话代理（OpenAI 兼容 SSE）
+functions/api/jd-greeting.js  JD 见面语接口（非流式，返回严格 JSON）
 functions/api/lead.js      留资接口
 functions/api/event.js     匿名注意力事件接口
 functions/api/admin.js     看板数据接口（需 ADMIN_TOKEN，防泄露）
 functions/api/_guard.mjs   对话准入闸门：同源校验 + 输入整形 + 限流（本地与 CF 共用，非路由）
-functions/api/_resume.mjs  自动生成（由 tools/gen-resume.mjs 从 public/resume.json 生成）
+functions/api/_jd.mjs      JD 接口共用工具：长度上限 + JSON 抠取 + 输出整形（本地与 CF 共用，非路由）
+functions/api/_resume.mjs  自动生成（由 tools/gen-resume.mjs 从 public/resume.json 生成，含 AI 与 JD 两套提示词）
 
 shared/prompt.mjs          AI 系统提示词生成器（全项目唯一定义，本地与 CF 共用）
 tools/gen-resume.mjs       把 public/resume.json 固化成 CF 可直接 import 的模块
+tools/export-outbound.mjs  把 public/resume.json 编译成 get_jobs 的 introduce + prompt（自动投递接入）
+outbound/get_jobs.md       上一步的产物：可直接粘进 get_jobs「AI 配置」—— 不随站点公开
 dev.mjs                    本地零依赖服务：托管页面 + 代理 AI + 落盘 leads/events
 docs/                      设计文档（SPEC / ADR）—— 不随站点公开
 ```
@@ -37,6 +42,7 @@ node dev.mjs
 
 - 简历页：http://127.0.0.1:8788
 - 线索看板：http://127.0.0.1:8788/admin.html
+- JD 见面语工具：http://127.0.0.1:8788/jd.html
   - 未配置 `ADMIN_TOKEN` 时，启动日志会打印一个**本次运行有效的临时口令**，复制进看板即可（重启即变）。
     想要固定口令，就在 `.env.local` 里加一行 `ADMIN_TOKEN=你的口令`。
 - 默认**只绑定 127.0.0.1**，局域网访问不到。确需手机预览用 `HOST=0.0.0.0 node dev.mjs` ——
@@ -59,7 +65,11 @@ node dev.mjs
 
 ```jsonc
 "intent":   { "目标岗位": "前端 / AI 应用实习", "期望城市": "长沙 / 远程", "到岗时间": "随时" },
-"projects": [ { "name": "项目名", "period": "2026.03 - 2026.05", "desc": "做了什么", "stack": ["React", "SSE"] } ]
+"projects": [ {
+  "name": "项目名", "period": "2026.03 - 2026.05",
+  "desc": "做了什么", "stack": ["React", "SSE"],
+  "decisions": [ { "choice": "选的方案", "why": "为什么这么选 / 放弃了什么" } ]   // 可选：渲染成「关键取舍」列表
+} ]
 ```
 
 部署到 Cloudflare 前，跑一次生成命令（CF 运行时没有文件系统，需把配置固化）：
@@ -73,6 +83,36 @@ node tools/gen-resume.mjs
 - 打开 `/admin.html`，填看板口令（线上为 `ADMIN_TOKEN`；本地未配置则用启动日志里打印的临时口令）。
 - 显示：留联人数、打开对话次数、板块热度排行、对话→留联转化率、线索明细（时间/称呼/联系方式/想聊方向/当时在看哪块）。
 - 每 30 秒自动刷新。
+
+## JD 自适应见面语（求职者本人使用）
+
+「会打招呼的简历 Agent」是**被动**的：HR 来看站、AI 答。这个工具把它翻成**主动**——你把一份岗位 JD 粘进去，
+它按你的真实简历（`resume.json`）判断匹配度，并写出一段可直接投递的打招呼语。用 `/jd.html` 打开。
+
+- 输入：岗位 JD 全文（上限 6000 字，`_jd.mjs` 的 `MAX_JD_CHARS`）。
+- 输出（严格 JSON，`POST /api/jd-greeting`）：`score`（0-100）、`verdict`（投 / 谨慎 / 不建议）、
+  `greeting`（60-90 字招呼语）、`emphasize`（该突出的点）、`gaps`（如实告知的缺口）、`rationale`。
+- **诚实约束**：提示词强制「只能用简历里真实存在的信息，JD 缺什么必须如实列进 gaps」，不编造、不虚高。
+- 复用 `/api/chat` 的同一套闸门（同源 + 限流）与同一份简历事实；差别是非流式、走 JD 专用提示词。
+
+> 这是**本人侧**工具，不面向访客。
+
+## 自动投递（outbound）——采用成熟开源，不自研
+
+真正把招呼语发到 Boss 直聘 / 猎聘等平台是另一层能力：需要本地 Chrome + 登录态，且有平台风控。
+**这一层不自研，直接采用开源 `loks666/get_jobs`**（唯一覆盖国内平台、自带按 JD 生成招呼语、且该提示词可自定义的活跃项目）。
+决策与边界见 `docs/ADR-0003-自动投递采用成熟开源.md`。
+
+分工是：**开源负责「手」（登录、点按钮、发消息、过验证），本项目负责「脑」（按真实简历判断与措辞）。**
+接入点是 `get_jobs` 网页端「AI 配置」里的 `prompt` 字段——它按
+`String.format(prompt, introduce, keyword, jobName, jd, sayHi)` 填充，所以我们把简历编译成这个模板即可：
+
+```bash
+node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + prompt，可直接复制粘贴）
+```
+
+三个必须知道的坑（详见 ADR-0003 第四节）：① `%1$s`~`%5$s` 顺序不能错；② 模板里字面 `%` 要写 `%%`；
+③ 模型输出含 `false` 会被 get_jobs 判为失败、回落到固定招呼语——故模板已强制「只输出招呼语本身」。
 
 ## 注意力捕捉（把「摸鱼浏览」变成机会）
 
@@ -117,7 +157,7 @@ node tools/gen-resume.mjs
 | 项 | 规则 | 为什么 |
 |---|---|---|
 | 发布目录 | 只发布 `public/`（CF 输出目录填 `public`，`dev.mjs` 的静态根也是 `public/`）；源码、`docs/`、`dev.mjs`、`tools/` 留在仓库根 | 输出目录填 `/` 会把 README、`dev.mjs`、`docs/SPEC`、`tools/` 一并发布到站点上 |
-| 静态资源 | `dev.mjs` 只放行 `PUBLIC_FILES` 白名单（`/index.html`、`/admin.html`、`/resume.json`），其余一律 404 | 黑名单漏一项就会把 `.env.local`（API Key）、`leads.json`（访客联系方式）、源码直接暴露。新增前端资源请在 `dev.mjs` 的 `PUBLIC_FILES` 里登记 |
+| 静态资源 | `dev.mjs` 只放行 `PUBLIC_FILES` 白名单（`/index.html`、`/admin.html`、`/jd.html`、`/resume.json`），其余一律 404 | 黑名单漏一项就会把 `.env.local`（API Key）、`leads.json`（访客联系方式）、源码直接暴露。新增前端资源请在 `dev.mjs` 的 `PUBLIC_FILES` 里登记 |
 | 监听地址 | 默认 `127.0.0.1` | 绑 `0.0.0.0` 时同网段任何人可下载上述文件 |
 | 看板 | 本地与线上都 fail-closed，口令不匹配即 401 | 线上未配 `ADMIN_TOKEN` 时直接 403，防访客数据泄露 |
 | `/api/chat` | 同源校验 + 每来源每分钟 12 次 + 消息长度/条数上限 + 角色白名单 + `max_tokens` | 接口会消耗模型额度，无闸门等于对公网开放一个免费 LLM 代理；角色白名单同时防提示词注入（客户端自带 system 消息会被丢弃） |
