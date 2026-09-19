@@ -32,7 +32,10 @@ tools/export-outbound.mjs  把 public/resume.json 编译成 get_jobs 的 introdu
 outbound/get_jobs.md       上一步的产物：可直接粘进 get_jobs「AI 配置」—— 不随站点公开
 dev.mjs                    本地零依赖服务：托管页面 + 代理 AI + 落盘 leads/events
 docs/                      设计文档（SPEC / ADR）—— 不随站点公开
+CHANGELOG.md               变更登记与作废登记（SPEC §19 治理门禁要求的文件）
 ```
+
+> 现状与待办看 `docs/SPEC-行为驱动主动性.md` §14.2（N0–N8）；历次变更与作废登记看 `CHANGELOG.md`。
 
 ## 快速开始（本地）
 
@@ -152,7 +155,7 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
 
 ## 安全基线（改动前请先读）
 
-本地服务与线上接口都按「默认拒绝」设计，不要为了图方便把闸门摘掉：
+本地服务与线上接口按「默认拒绝」设计（**当前除 `/api/chat` 与 `/api/jd-greeting` 外尚未全覆盖，见下表最后一行**），不要为了图方便把闸门摘掉：
 
 | 项 | 规则 | 为什么 |
 |---|---|---|
@@ -161,6 +164,7 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
 | 监听地址 | 默认 `127.0.0.1` | 绑 `0.0.0.0` 时同网段任何人可下载上述文件 |
 | 看板 | 本地与线上都 fail-closed，口令不匹配即 401 | 线上未配 `ADMIN_TOKEN` 时直接 403，防访客数据泄露 |
 | `/api/chat` | 同源校验 + 每来源每分钟 12 次 + 消息长度/条数上限 + 角色白名单 + `max_tokens` | 接口会消耗模型额度，无闸门等于对公网开放一个免费 LLM 代理；角色白名单同时防提示词注入（客户端自带 system 消息会被丢弃） |
+| ⚠️ `/api/lead`、`/api/event`（**已知未覆盖**） | 目前**无同源校验、无限流、无字段白名单**，仅校验 `contact` 非空；KV key 直接用客户端传来的 `contact` 拼接 | 见 `docs/SPEC-行为驱动主动性.md` §7.1 与任务 **N9**（上线前必做）。最直接的危害不是泄露而是**静默丢数据**：Cloudflare 免费版 KV 只有 1000 writes/day，被刷光当天真实留资会无声丢失 |
 
 闸门逻辑集中在 `functions/api/_guard.mjs`，本地与 CF 共用同一份，改一处两侧同时生效。
 
