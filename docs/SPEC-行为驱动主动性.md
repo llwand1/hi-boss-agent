@@ -488,13 +488,15 @@ function nextStance(prev, signal, ctx) {
 | **N2** | 额度计数器：单会话主动弹 ≤2 次，弹满后永久静默（保留现有「面板开过一次即停」） | 依次划过 3 个区块，第 3 次不弹；E9 静默 | `public/index.html` | **2026-09-20 实施**（额度=2；同一条气泡跨板块换文案算同一次，不重复计） |
 | **N3** | 隐私两件：①面板内「别主动找我」开关（开→强制不再弹）②首次主动气泡处给一行说明「会根据你正在看的内容调整推荐，不记录个人信息」 | 开关生效后停留再久也不弹；说明行在首弹时可见 | `public/index.html`、`public/resume.json` | **2026-09-20 实施**（仅改 `index.html`；说明行走前端固定文案，不入 `resume.json`——它不是简历内容，进内容表会污染单一事实源） |
 | **N4** | 看板加「主动弹出次数」与 focus 对应关系（US-6） | `/api/event` 落库含弹次；看板可读 | `public/admin.html`、`dev.mjs`、`functions/api/event.js` | 待做 |
-| **N5** | 7 条 `sectionTips` 话术定稿（要老板原话，不要 AI 腔） | 老板逐条签字；匹配率指标转为「语气认可」 | `public/resume.json` | **等人**：§18 未决问题 1 |
+| **N5** | 7 条 `sectionTips` 话术定稿（要老板原话，不要 AI 腔） | 老板逐条签字；匹配率指标转为「语气认可」 | `public/resume.json` | **等人**：§18 未决问题 1。**2026-09-20 已把「等你写 7 句」降成「每行填一句话」——见 `docs/N5-话术采集单.md`（含 3 条硬约束、7 条现文案列为反例、填完后的落地步骤）** |
 | **N6** | 补 `CHANGELOG.md`（§19 自订门禁） | 文件存在，含本轮及追溯 4 条 commit | `CHANGELOG.md` | **本轮已完成** |
 | **N7** | 建 7 场景评测集并人工跑一遍 | `docs/eval-主动性.md` 有标注结果 + 误报率实数 | `docs/eval-主动性.md` | 待做（依赖 N1/N2/N3） |
 | **N8** | 门禁脚本化：`gen-resume` 漂移检查 + 按 ESM 正确校验 5 个路由 | 改 `resume.json` 不重跑即报错；`node --check` 不再误报 | `tools/`（新增校验脚本） | 待做 |
 | **N9** | **补 `/api/lead` 与 `/api/event` 的闸门**（§7.1 登记的基线偏差）：同源校验 + 限流 + 字段白名单（lead 只取 `name/contact/note/section`、event 只取 `type/section`），KV key 改为服务端生成（不再拼 `data.contact`），并二选一处理 `dev.mjs:250` 的 ip 字段 | 跨源 POST `/api/lead` 返回 403；连发 20 条返回 429；KV 里出现的字段只限白名单；README「默认拒绝」这句在改完后才成立 | `functions/api/lead.js`、`functions/api/event.js`、`dev.mjs`、`functions/api/_guard.mjs`、`README.md` | **✅ 2026-09-20 结项**：四条出口判据逐一实测通过——跨源 lead **403**、连发 20 条第 3 条起 **429**（配额 5/min，已耗 2 次）、落库字段仅 `name/contact/note/section,ts`（夹带的 `ip/ua/isAdmin/5000 字 blob` 全丢）、ip 已删。另补两项超出原判据的实测：**无 Origin 头的脚本直刷 403**、**真访客走真实页面留资 7/7 无误伤**（闸门最容易犯的错就是把自己人也挡了）。合计 32/32 |
 
-**建议顺序**：N1+N2+N3 一批（同一文件、都是删噪声与补红线，可一次真人测完）→ **2026-09-20 已落地** → N6 已顺手完成 → N5 等老板话术 → N4/N8 → N7 收尾。N0 与 N9 这两道**上线前硬闸均已于 2026-09-20 结项**（一个管功能可用、一个管不被刷爆）→ **本 SPEC 已无「上线前必做」项，剩下的 N4/N5/N7/N8 都可上线后推进**。
+| **N10** | **身份真值**（取代 N0/N9 成为唯一的上线前必做项）：填真实邮箱（现为 `you@example.com`）、核对 `education.years`（现 `2025 — 2026`，本科一年会被追问）、**处理 `llwan.dev`**（实测 DNS 返回 `Non-existent domain`）、确认 `github.com/llwan` 与 remote `llwand1` 哪个是你 | 页面与 `/api/chat` 的回答里不出现任何不存在的域名或邮箱；改 `resume.json` 后重跑 `node tools/gen-resume.mjs` 且 `functions/api/_resume.mjs` 无漂移 | `public/resume.json`、`tools/gen-resume.mjs`（重跑）、`shared/prompt.mjs`（若需禁止引用未核实出口） | **等人（2026-09-20 登记）**：本轮实测 `/api/chat` 问「给个联系方式」，AI 原话把访客往 `llwan.dev`（不存在）与 `github.com/llwan`（未证实归属）两个出口引。**这是产品级缺陷不是文档瑕疵——它一开口就骗人**。急用可先把这两个出口从页面摘掉（我已备好选项） |
+
+**建议顺序**：N1+N2+N3 一批（同一文件、都是删噪声与补红线，可一次真人测完）→ **2026-09-20 已落地** → N6 已顺手完成 → N5 等老板话术 → N4/N8 → N7 收尾。N0 与 N9 这两道**上线前硬闸均已于 2026-09-20 结项**（一个管功能可用、一个管不被刷爆）→ 新增 **N10（身份真值）取代它们成为唯一的上线前必做项**，它与 N5 一样都是**等老板给东西**，不给代码做完也没用。
 
 ---
 
@@ -555,6 +557,11 @@ function nextStance(prev, signal, ctx) {
 | 4 零依赖 | 仓库无 `package.json`、无 `node_modules`，前后端全用原生 | **成立** |
 | 5 Agnes 不变 | `AI_API_BASE=https://api.agnes-ai.cn/v1`、`AI_MODEL=agnes-2.5-flash` 未变，但**令牌状态不可用（实测 401）** | 用法成立，**可用性断了** |
 | 6 占位内容 | `email` 仍为 `you@example.com`；`education.years` 仍为 `2025 — 2026`；页面另署 `github.com/llwan` 与 `llwan.dev`，而 git remote 是 `llwand1` | **仍未填**，且两个域名的真实性本机不可达无法证实 → **上线前必须处理** |
+
+> **[2026-09-20 再校正，本表为 09-19 快照故不回改]** 三条现行事实：
+> ① **第 1 行引用的 `tipTimer` / `scheduleTip()` 已不存在**（N1 于 2026-09-20 删除），额度改由 `TIP_QUOTA_MAX=2` 显式承担；本行按历史读，别照着 grep。
+> ② **第 5 行的令牌已换发可用**（N0 结项，见 §14.2）。
+> ③ **第 6 行的「无法证实」现已证实为不存在**：`llwan.dev` 在本机 DNS 查询返回 **`Non-existent domain`**，而同解析器同机器对照 `github.com` 正常解析出 IP（`20.29.134.23`），故排除「本机网络受限」这一解释。`github.com/llwan` 返回 200 但与 remote `llwand1` 是否同一人未证实。**且这不是「页面上写了个假域名」那么轻——实测 `/api/chat` 问它「给个联系方式」，AI 分身的原话是把访客往这两个出口引**：「或者你也可以通过 github.com/llwan 或 llwan.dev 找到我的其他信息」。登记为 §14.2 **N10（上线前必做）**。
 
 ---
 
