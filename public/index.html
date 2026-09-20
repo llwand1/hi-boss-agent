@@ -198,6 +198,7 @@
     color: rgba(255,255,255,.55); cursor: pointer; padding: 2px 4px;
   }
   .tip-x:hover { color: #fff; }
+  .tip-sub { display: block; margin-top: 5px; font-size: 10.5px; line-height: 1.35; color: rgba(255,255,255,.62); }
 
   .ai-panel {
     position: fixed; top: 72px; right: 18px; z-index: 41;
@@ -216,6 +217,9 @@
     background: linear-gradient(180deg,#fbfdff,#f3f8ff);
   }
   .ai-head .t { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .ai-head-ctl { display: flex; align-items: center; gap: 10px; }
+  .ai-mute { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-soft); cursor: pointer; user-select: none; }
+  .ai-mute input { width: 13px; height: 13px; margin: 0; accent-color: #2563eb; cursor: pointer; }
   .ai-head .t .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.8s infinite; }
   .ai-close { border: none; background: transparent; color: var(--ink-soft); cursor: pointer; padding: 4px; border-radius: 8px; display: grid; place-items: center; }
   .ai-close:hover { background: var(--line); color: var(--ink); }
@@ -396,14 +400,19 @@
 <button class="ai-fab" id="aiFab" aria-label="打开 AI 问答" aria-expanded="false">
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.6 6.1V21l3.3-1.8c.9.2 1.8.3 2.8.3 5.5 0 10-3.6 10-8s-4.5-8.5-10-8.5Z"/><circle cx="8.4" cy="11" r="1.35"/><circle cx="12" cy="11" r="1.35"/><circle cx="15.6" cy="11" r="1.35"/></svg>
 </button>
-<div class="tip" id="aiTip">有什么问题可以问问我<span class="tip-x" id="aiTipX" aria-label="关闭">×</span></div>
+<div class="tip" id="aiTip"><span id="aiTipMsg">有什么问题可以问问我</span><span class="tip-sub" id="aiTipSub" hidden>会根据你正在看的内容调整推荐，不记录个人信息</span><span class="tip-x" id="aiTipX" aria-label="关闭">×</span></div>
 
 <div class="ai-panel" id="aiPanel" role="dialog" aria-label="AI 问答助手">
   <div class="ai-head">
     <div class="t"><span class="dot"></span>AI 问答助手</div>
-    <button class="ai-close" id="aiClose" aria-label="关闭">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-    </button>
+    <div class="ai-head-ctl">
+      <label class="ai-mute" for="tipMute" title="关闭后本站不再主动弹出提示气泡">
+        <input type="checkbox" id="tipMute" />别主动找我
+      </label>
+      <button class="ai-close" id="aiClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
   </div>
   <div class="ai-body" id="aiBody">
     <div class="ai-bubble" id="aiGreeting">你好，我是 llwan 的 AI 分身。关于我的专业、技能、经历都可以问我～</div>
@@ -470,14 +479,26 @@
   var closeBtn = document.getElementById('aiClose');
   var tip = document.getElementById('aiTip');
   var tipX = document.getElementById('aiTipX');
-  var tipTimer;
+  var tipMsg = document.getElementById('aiTipMsg');
+  var tipSub = document.getElementById('aiTipSub');
+  var tipMute = document.getElementById('tipMute');
+  // N2 额度：主动提示一个会话最多 2 次；N3 开关：访客可一键关掉
+  var TIP_QUOTA_MAX = 2;
+  var tipQuotaLeft = TIP_QUOTA_MAX;
+  var tipShowing = false;
+  var tipMuted = false;
+  var panelOpened = false;
 
   function toggleAI(open) {
     panel.classList.toggle('open', open);
     fab.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) { clearTimeout(tipTimer); hideTip(); }   // 打开过一次后停止自动提示
+    if (open) { panelOpened = true; hideTip(); }    // 打开过一次后停止自动提示
   }
-  function hideTip() { tip.classList.remove('show'); clearTimeout(tip._h); }
+  function hideTip() {
+    tip.classList.remove('show');
+    tipShowing = false;
+    clearTimeout(tip._h);
+  }
   function placeTip() {
     var r = fab.getBoundingClientRect();
     var tw = tip.offsetWidth || 200, th = tip.offsetHeight || 42;
@@ -492,6 +513,7 @@
     if (panel.classList.contains('open')) return;
     placeTip();
     tip.classList.add('show');
+    tipShowing = true;
     clearTimeout(tip._h);
     tip._h = setTimeout(hideTip, 5000);
   }
@@ -525,6 +547,13 @@
   closeBtn.addEventListener('click', function () { toggleAI(false); });
   tip.addEventListener('click', function (e) { if (e.target !== tipX) toggleAI(true); });
   tipX.addEventListener('click', function (e) { e.stopPropagation(); hideTip(); });
+  tipMute.addEventListener('change', function () {
+    tipMuted = tipMute.checked;
+    if (tipMuted) {
+      hideTip();
+      toast('好的，不再主动提示你');
+    }
+  });
 
   // —— AI 问答：真实对话（流式 SSE）——
   var aiBody = document.getElementById('aiBody');
@@ -617,11 +646,17 @@
   var SECTION_CHIPS = {};
 
   // 闲置时主动表现：停留在某板块 6 秒且未开聊 → 弹出贴合该板块的提示
+  function setTipMsg(msg) {
+    tipMsg.textContent = msg;
+  }
   function adaptiveTip() {
-    if (panel.classList.contains('open')) return;
+    if (panel.classList.contains('open') || panelOpened) return;
+    if (tipMuted || tipQuotaLeft <= 0) return;
     var msg = (SECTION_TIPS && SECTION_TIPS[currentSection]) || '有什么问题可以问问我';
-    if (tip.firstChild && tip.firstChild.nodeType === 3) tip.firstChild.nodeValue = msg;
-    else tip.textContent = msg;
+    if (tipShowing) { setTipMsg(msg); placeTip(); return; }  // 同一条气泡跨板块换文案，不额外计额度
+    setTipMsg(msg);
+    tipSub.hidden = tipQuotaLeft < TIP_QUOTA_MAX;            // 说明行只在第一次主动提示时出现
+    tipQuotaLeft--;
     showTip();
   }
   var dwellTimer;
@@ -664,6 +699,12 @@
       }
       pingEvent('panel_open', currentSection);
     }
+  };
+  // N2：包装后的 toggleAI 覆盖了上面赋的标记，这里补挂一次「开过一次即停」
+  var _toggleWithStop = toggleAI;
+  toggleAI = function (open) {
+    if (open) panelOpened = true;
+    return _toggleWithStop(open);
   };
 
   // —— 留资（把注意力转成机会）——
@@ -713,11 +754,8 @@
     if (currentSection !== lastPing) { lastPing = currentSection; pingEvent('section_view', currentSection); }
   }, 4000);
 
-  // 随机弹出提示气泡：4 秒后首次，之后每隔 18–36 秒一次
-  setTimeout(function () { showTip(); scheduleTip(); }, 4000);
-  function scheduleTip() {
-    tipTimer = setTimeout(function () { showTip(); scheduleTip(); }, 18000 + Math.random() * 18000);
-  }
+  // （N1 已删）原「随机弹出提示气泡」循环：4 秒后首次、之后每 18–36 秒无限重复。
+  // 主动提示现在只由 adaptiveTip() 的停留判定 + 额度触发。
 
   // ===================================================================
   // 模板化：页面内容由 resume.json 驱动（改配置不改代码）
