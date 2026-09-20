@@ -1,4 +1,4 @@
-// 对话接口的准入闸门 —— dev.mjs 与 Cloudflare Pages Functions 共用同一份逻辑，保证两侧行为一致。
+// 接口准入闸门 —— dev.mjs 与 Cloudflare Pages Functions 共用同一份逻辑，保证两侧行为一致。
 // 放在 functions/api/ 下、以 _ 前缀命名，与 _resume.mjs 同一范式：同目录相对引入，不产生路由。
 // （曾评估放在 shared/ 由 CF 跨目录 import，但 Pages Functions 的跨目录引入未见于官方文档，
 //   不拿部署可靠性赌这个不确定性。）
@@ -81,4 +81,37 @@ export function safeEqual(a, b) {
   let diff = 0;
   for (let i = 0; i < A.length; i++) diff |= A.charCodeAt(i) ^ B.charCodeAt(i);
   return diff === 0;
+}
+
+// ===== 写接口（/api/lead、/api/event）的专用闸门 =====
+// 为什么单列：这两个接口不花模型额度，但直接写 Cloudflare KV —— 免费版只有 1000 writes/day，
+// 被刷光的当天真实 HR 留资会**静默丢失**（丢的是本产品的唯一产出物）。危害形态与 /api/chat
+// 不同，所以阈值也不同：留资是一次性动作（给极小配额 + 重试余量），事件由前端每 4s 探测板块
+// 变化触发、快速划过 7 个板块就会连发多条（配额要给得宽松，否则误伤真实访客）。
+export const LEAD_LIMITS = { rateWindowMs: 60 * 1000, rateMax: 5 };
+export const EVENT_LIMITS = { rateWindowMs: 60 * 1000, rateMax: 30 };
+
+// 字段白名单：只挑出声明过的字段，其余全部丢弃。
+// 不做这层的后果是客户端可往记录里塞任意字段（伪造「来源」「岗位」、超长文本塞爆 KV 体积），
+// 且隐私声明「不记个人信息」会变成一句由访客自己填写的空话。
+export function pickFields(data, allowed, maxLen = 200) {
+  const out = {};
+  if (!data || typeof data !== 'object') return out;
+  for (const key of allowed) {
+    const v = data[key];
+    if (typeof v === 'string' && v.trim()) out[key] = v.trim().slice(0, maxLen);
+  }
+  return out;
+}
+
+// 服务端生成 KV key：绝不拼客户端传来的值（旧实现用 data.contact 拼，等于允许访客往本命名空间
+// 写任意 key）。前缀带类型便于排障，随机后缀防同一毫秒内碰撞。
+export function serverKey(prefix, now = Date.now()) {
+  let rnd = '';
+  try {
+    const bytes = new Uint8Array(4);
+    (globalThis.crypto || {}).getRandomValues?.(bytes);
+    rnd = Array.from(bytes, (b) => b.toString(36)).join('').slice(0, 6);
+  } catch (e) {}
+  return prefix + ':' + now + (rnd ? ':' + rnd : '');
 }

@@ -10,6 +10,21 @@
 
 ### fix (2026-09-20)
 
+**N9 结项：`/api/lead` 与 `/api/event` 补齐闸门（同源 + 限流 + 字段白名单 + KV key 服务端生成 + 删 ip）**
+
+- 施工面：`functions/api/_guard.mjs`（新增 `LEAD_LIMITS`/`EVENT_LIMITS`/`pickFields`/`serverKey` 四项，闸门逻辑仍集中一处）、`functions/api/lead.js`、`functions/api/event.js`、`dev.mjs`（本地两路由同步）、`README.md`（安全基线表：原「已知未覆盖」行拆成两行写实，并按昨日承诺**恢复「都按默认拒绝设计」原措辞**）、`docs/SPEC-行为驱动主动性.md`（§14.2 N9 结项、§7.1 处置批注、§16 风险行降档——快照表头按「历史不回改」保留）、本文件。
+- 动因：SPEC §7.1 登记的基线偏差。最直接的危害不是泄露，是**静默丢数据**——免费版 KV 1000 writes/day 被刷光后当天真实 HR 留资无声丢失；且旧 KV key 用客户端 `contact` 拼接，等于允许访客往本命名空间自由写 key。
+- 阈值的定法（不是一刀切 12/min）：`/api/lead` 给 **5 次/分**——留资是一次性动作，5 次足够并留出重试余量；`/api/event` 给 **30 次/分**——前端每 4s 探测板块变化，快速划过 7 个板块就会连发，收紧会误伤真实访客（此点由 E5 用例守住：前 18 条必须全放过）。事件侧还额外丢弃客户端 `ts` 改服务端盖戳，防伪造时序。
+- 实测 **32/32**（真实 HTTP，每组用例起独立进程重置内存限流器）：
+  - 闸门 25/25：跨源 lead/event **403**；无 Origin 头的脚本直刷 **403**；lead 连发 20 条 → `200 200 429×18`（配额 5，用例前已耗 2）；event 连发 40 条 → 200×29 / 429×11；夹带的 `ip/ua/isAdmin/5000 字 blob` 全部不落库，最终字段集恰为 `contact,name,note,section,ts` 与 `section,ts,type`；缺 `contact`/坏 JSON → 400；`ip` 字段已消失。
+  - **真访客端到端 7/7**（闸门最容易犯的错是把自己人也挡掉）：jsdom 驱动真实页面点「留联」→ 填表 → 提交，落库成功、页面显示成功文案而非「提交失败」、表单清空、`lead`+`section_view` 事件正常上报。
+  - 回归：`/api/chat` 仍出 `text/event-stream`（N0 未破）、跨源 chat 仍 403、未授权 `/api/admin` 仍 401、6 项静态资源仍 404、首页 200。
+  - ESM 校验 7/7（`_guard.mjs`/`dev.mjs` 走 `node --check`，5 个路由走真实 ESM import 并检查导出，`node --check` 对 ESM 必然误报故不采用）。
+- 已知未验：① **CF 运行时侧未实测**（站点未部署），但两侧 import 同一份 `_guard.mjs` 且阈值/白名单常量同源；② `serverKey` 的随机后缀依赖 `globalThis.crypto`，Workers 环境应有、**未实测**，取不到时已降级为 `前缀:时间戳`（不抛错，但同毫秒碰撞概率上升）；③ 旧格式 KV 记录仍可读——`admin.js` 的 `dump()` 只 `kv.get(k.name)` 解析 value、不解析 key 名（**读代码确认，未在线上实测**）。
+- 测试数据处置：`leads.json`（1 行）与 `events.json`（23 行）跑完精确还原；临时起的服务进程已停、端口已释放；无 `.esmcheck.mjs` / `.chk.mjs` 残留。
+
+### fix (2026-09-20)
+
 **N0 结项：Agnes 上游 key 换发后被动问答与 JD 见面语两条链路恢复**
 
 - 变更文件：仅 `.env.local`（**不入库**，被 `.gitignore` 的 `.env.*` 覆盖，`git ls-files` 确认未跟踪）+ 文档三处：`docs/SPEC-行为驱动主动性.md`（§14.2 N0 行改结项、建议顺序句同步）、`docs/ADR-0003-*.md`（「事实定论」段补第 2 行解除，恢复「可复用本项目同一把 key」建议）、本文件。**代码零改动。**

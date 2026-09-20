@@ -11,7 +11,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { buildSystemPrompt, buildJdGreetingPrompt } from './shared/prompt.mjs';
-import { LIMITS, isSameOrigin, sanitizeMessages, createRateLimiter, safeEqual } from './functions/api/_guard.mjs';
+import { LIMITS, LEAD_LIMITS, EVENT_LIMITS, isSameOrigin, sanitizeMessages, createRateLimiter, pickFields, safeEqual } from './functions/api/_guard.mjs';
 import { MAX_JD_CHARS, extractJson, normalizeJdGreeting } from './functions/api/_jd.mjs';
 
 // 读取 .env.local（不进 git）
@@ -47,6 +47,11 @@ const ADMIN_TOKEN_IS_TEMP = !ADMIN_TOKEN;
 if (ADMIN_TOKEN_IS_TEMP) ADMIN_TOKEN = randomBytes(12).toString('hex');
 
 const allowChat = createRateLimiter();
+// 写接口与线上 lead.js / event.js 用同一份 _guard 逻辑与同一组阈值，保证本地测出来的行为就是线上的行为
+const allowLead = createRateLimiter(LEAD_LIMITS);
+const allowEvent = createRateLimiter(EVENT_LIMITS);
+const LEAD_FIELDS = ['name', 'contact', 'note', 'section'];
+const EVENT_FIELDS = ['type', 'section'];
 
 // 系统提示：由 resume.json 生成（与 Cloudflare 侧共用 shared/prompt.mjs，保证一致）
 let SYSTEM_PROMPT = '你是简历站点的 AI 助手，用中文简洁回答访客问题。';
@@ -242,12 +247,24 @@ const server = http.createServer(async (req, res) => {
 
   // ===== /api/lead 留资（把注意力转成机会）=====
   if (req.method === 'POST' && u.pathname === '/api/lead') {
+    if (!isSameOrigin(req.headers.origin, req.headers.host)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '来源不被允许' }));
+      return;
+    }
+    if (!allowLead(req.socket.remoteAddress || 'unknown')) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
+      return;
+    }
     let raw = '';
     for await (const c of req) raw += c;
     let data;
     try { data = JSON.parse(raw); } catch { res.writeHead(400); res.end('bad json'); return; }
-    if (!data.contact) { res.writeHead(400); res.end('contact required'); return; }
-    const rec = { ...data, ts: new Date().toISOString(), ip: req.socket.remoteAddress };
+    const clean = pickFields(data, LEAD_FIELDS, 300);
+    if (!clean.contact) { res.writeHead(400); res.end('contact required'); return; }
+    // 不写 ip：与线上 lead.js 保持一致，兑现 §7.2「不把 IP 记到个人维度」
+    const rec = { ...clean, ts: new Date().toISOString() };
     const fp = path.join(ROOT, 'leads.json');
     const prev = existsSync(fp) ? readFileSync(fp, 'utf8').trim() : '';
     writeFileSync(fp, (prev ? prev + '\n' : '') + JSON.stringify(rec) + '\n');
@@ -258,11 +275,23 @@ const server = http.createServer(async (req, res) => {
 
   // ===== /api/event 匿名注意力事件（无个人信息）=====
   if (req.method === 'POST' && u.pathname === '/api/event') {
+    if (!isSameOrigin(req.headers.origin, req.headers.host)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '来源不被允许' }));
+      return;
+    }
+    if (!allowEvent(req.socket.remoteAddress || 'unknown')) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
+      return;
+    }
     let raw = '';
     for await (const c of req) raw += c;
     let data;
     try { data = JSON.parse(raw); } catch { res.writeHead(400); res.end('bad json'); return; }
-    const rec = { ...data, ts: new Date().toISOString() };
+    const clean = pickFields(data, EVENT_FIELDS, 60);
+    if (!clean.type) { res.writeHead(400); res.end('type required'); return; }
+    const rec = { ...clean, ts: new Date().toISOString() };
     const fp = path.join(ROOT, 'events.json');
     const prev = existsSync(fp) ? readFileSync(fp, 'utf8').trim() : '';
     writeFileSync(fp, (prev ? prev + '\n' : '') + JSON.stringify(rec) + '\n');

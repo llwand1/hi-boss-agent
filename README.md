@@ -155,7 +155,7 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
 
 ## 安全基线（改动前请先读）
 
-本地服务与线上接口按「默认拒绝」设计（**当前除 `/api/chat` 与 `/api/jd-greeting` 外尚未全覆盖，见下表最后一行**），不要为了图方便把闸门摘掉：
+本地服务与线上接口**都**按「默认拒绝」设计（四条会写数据或花额度的接口 `/api/chat`、`/api/jd-greeting`、`/api/lead`、`/api/event` 已全部覆盖，看板口令独立），不要为了图方便把闸门摘掉：
 
 | 项 | 规则 | 为什么 |
 |---|---|---|
@@ -164,7 +164,8 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
 | 监听地址 | 默认 `127.0.0.1` | 绑 `0.0.0.0` 时同网段任何人可下载上述文件 |
 | 看板 | 本地与线上都 fail-closed，口令不匹配即 401 | 线上未配 `ADMIN_TOKEN` 时直接 403，防访客数据泄露 |
 | `/api/chat` | 同源校验 + 每来源每分钟 12 次 + 消息长度/条数上限 + 角色白名单 + `max_tokens` | 接口会消耗模型额度，无闸门等于对公网开放一个免费 LLM 代理；角色白名单同时防提示词注入（客户端自带 system 消息会被丢弃） |
-| ⚠️ `/api/lead`、`/api/event`（**已知未覆盖**） | 目前**无同源校验、无限流、无字段白名单**，仅校验 `contact` 非空；KV key 直接用客户端传来的 `contact` 拼接 | 见 `docs/SPEC-行为驱动主动性.md` §7.1 与任务 **N9**（上线前必做）。最直接的危害不是泄露而是**静默丢数据**：Cloudflare 免费版 KV 只有 1000 writes/day，被刷光当天真实留资会无声丢失 |
+| `/api/lead` | 同源校验 + 每来源每分钟 5 次 + 字段白名单（只取 `name/contact/note/section`，单字段截 300 字）+ KV key 由服务端生成 | 留资是一次性动作，5 次/分钟足够且留了重试余量。白名单挡住「访客自己往记录里塞字段」，KV key 不再拼 `contact`（旧实现等于允许访客自由写本命名空间）。**不写 ip**，与本地 `dev.mjs` 一致，兑现 SPEC §7.2 |
+| `/api/event` | 同源校验 + 每来源每分钟 30 次 + 字段白名单（只取 `type/section`，截 60 字）+ KV key 由服务端生成 | 阈值比留资宽松得多：前端每 4s 探测板块变化，快速划过 7 个板块就会连发，收紧会误伤真实访客。客户端传来的 `ts` 一律丢弃、改由服务端盖时间戳（防伪造时序）。这两个接口不花模型额度但**直接写 KV**，免费版 1000 writes/day 被刷光当天真实留资会静默丢失 |
 
 闸门逻辑集中在 `functions/api/_guard.mjs`，本地与 CF 共用同一份，改一处两侧同时生效。
 
@@ -174,7 +175,7 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
 
 ## 说明
 
-- 前端走同域 `/api/*`，无 CORS 问题。**直接双击 `public/index.html` 打开时 AI 与看板不可用属正常**（会用内置兜底内容展示简历，不会白屏）。
+- 前端走同域 `/api/*`，无 CORS 问题。**直接双击 `public/index.html`（`file://`）打开时 AI 问答、留资、事件上报与看板均不可用属正常**——四条接口都做同源校验，`file://` 的 `Origin` 为 `null` 会被 403；此时页面仍用内置兜底内容展示简历，不会白屏。
 - 密钥只存环境变量 / `.env.local` / `.dev.vars`，不进代码；`.env.local`、`leads.json`、`events.json` 已被 gitignore。
 - `leads.json` / `events.json` 是**本地开发**的落盘文件，留在仓库根（不在 `public/` 下，不会被发布）；线上数据走 KV。
 - 换模型或接非 OpenAI 兼容 API：改 `functions/api/chat.js` 里的 fetch 部分即可。
