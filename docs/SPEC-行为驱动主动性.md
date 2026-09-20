@@ -488,15 +488,17 @@ function nextStance(prev, signal, ctx) {
 | **N2** | 额度计数器：单会话主动弹 ≤2 次，弹满后永久静默（保留现有「面板开过一次即停」） | 依次划过 3 个区块，第 3 次不弹；E9 静默 | `public/index.html` | **2026-09-20 实施**（额度=2；同一条气泡跨板块换文案算同一次，不重复计） |
 | **N3** | 隐私两件：①面板内「别主动找我」开关（开→强制不再弹）②首次主动气泡处给一行说明「会根据你正在看的内容调整推荐，不记录个人信息」 | 开关生效后停留再久也不弹；说明行在首弹时可见 | `public/index.html`、`public/resume.json` | **2026-09-20 实施**（仅改 `index.html`；说明行走前端固定文案，不入 `resume.json`——它不是简历内容，进内容表会污染单一事实源） |
 | **N4** | 看板加「主动弹出次数」与 focus 对应关系（US-6） | `/api/event` 落库含弹次；看板可读 | `public/admin.html`、`dev.mjs`、`functions/api/event.js` | 待做 |
-| **N5** | 7 条 `sectionTips` 话术定稿（要老板原话，不要 AI 腔） | 老板逐条签字；匹配率指标转为「语气认可」 | `public/resume.json` | **等人**：§18 未决问题 1。**2026-09-20 已把「等你写 7 句」降成「每行填一句话」——见 `docs/N5-话术采集单.md`（含 3 条硬约束、7 条现文案列为反例、填完后的落地步骤）** |
+| **N5** | 7 条 `sectionTips` 话术定稿（要老板原话，不要 AI 腔） | 老板逐条签字；匹配率指标转为「语气认可」 | `public/resume.json` | **等人**：§18 未决问题 1。**2026-09-20 已把「等你写 7 句」降成「每行填一句话」——见 `docs/N5-话术采集单.md`（含 3 条硬约束、7 条现文案列为反例、填完后的落地步骤）**。同日因口径变化做了 **2 处最小事实纠正**（不属于话术定稿）：`sectionTips.intent` 去掉「前端」、`sectionChips.edu` 的「学校有什么资源？」改为「自学路线是怎么走下来的？」（校名已不展示，留着这问法等于邀请一个必须拒答的问题）。`edu` 行原本被 N10 卡住，现校名口径已定，**可以先填**；`contact` 行仍等邮箱与域名 |
 | **N6** | 补 `CHANGELOG.md`（§19 自订门禁） | 文件存在，含本轮及追溯 4 条 commit | `CHANGELOG.md` | **本轮已完成** |
 | **N7** | 建 7 场景评测集并人工跑一遍 | `docs/eval-主动性.md` 有标注结果 + 误报率实数 | `docs/eval-主动性.md` | 待做（依赖 N1/N2/N3） |
-| **N8** | 门禁脚本化：`gen-resume` 漂移检查 + 按 ESM 正确校验 5 个路由 | 改 `resume.json` 不重跑即报错；`node --check` 不再误报 | `tools/`（新增校验脚本） | 待做 |
+| **N8** | 门禁脚本化：`gen-resume` 漂移检查 + 按 ESM 正确校验 5 个路由 + **`index.html` 静态占位与 `resume.json` 的漂移检查** | 改 `resume.json` 不重跑即报错；`node --check` 不再误报 | `tools/`（新增校验脚本） | **半做（2026-09-20）**：`tools/sync-fallback.mjs` 已把 `RESUME_FALLBACK` 这块 JS 常量纳入机械同步（幂等已验）。**仍缺三项检查**：① `index.html` 的静态占位（`#rfSkills`/`#rfTech`/`#rfMajor`+`#rfEduSub`/`#rfAbout`/`meta`）与 json 的一致性——本轮实测发现这份手抄副本正在泄漏校名与自评百分比，工具**不做正则改写 HTML**（太脆），改为要求报错；② 改 json 未重跑 `gen-resume` 的报错；③ 5 路由的 ESM 正确校验目前只在临时 harness 里（7/7），未固化进仓库 |
 | **N9** | **补 `/api/lead` 与 `/api/event` 的闸门**（§7.1 登记的基线偏差）：同源校验 + 限流 + 字段白名单（lead 只取 `name/contact/note/section`、event 只取 `type/section`），KV key 改为服务端生成（不再拼 `data.contact`），并二选一处理 `dev.mjs:250` 的 ip 字段 | 跨源 POST `/api/lead` 返回 403；连发 20 条返回 429；KV 里出现的字段只限白名单；README「默认拒绝」这句在改完后才成立 | `functions/api/lead.js`、`functions/api/event.js`、`dev.mjs`、`functions/api/_guard.mjs`、`README.md` | **✅ 2026-09-20 结项**：四条出口判据逐一实测通过——跨源 lead **403**、连发 20 条第 3 条起 **429**（配额 5/min，已耗 2 次）、落库字段仅 `name/contact/note/section,ts`（夹带的 `ip/ua/isAdmin/5000 字 blob` 全丢）、ip 已删。另补两项超出原判据的实测：**无 Origin 头的脚本直刷 403**、**真访客走真实页面留资 7/7 无误伤**（闸门最容易犯的错就是把自己人也挡了）。合计 32/32 |
 
-| **N10** | **身份真值**（取代 N0/N9 成为唯一的上线前必做项）：填真实邮箱（现为 `you@example.com`）、核对 `education.years`（现 `2025 — 2026`，本科一年会被追问）、**处理 `llwan.dev`**（实测 DNS 返回 `Non-existent domain`）、确认 `github.com/llwan` 与 remote `llwand1` 哪个是你 | 页面与 `/api/chat` 的回答里不出现任何不存在的域名或邮箱；改 `resume.json` 后重跑 `node tools/gen-resume.mjs` 且 `functions/api/_resume.mjs` 无漂移 | `public/resume.json`、`tools/gen-resume.mjs`（重跑）、`shared/prompt.mjs`（若需禁止引用未核实出口） | **等人（2026-09-20 登记）**：本轮实测 `/api/chat` 问「给个联系方式」，AI 原话把访客往 `llwan.dev`（不存在）与 `github.com/llwan`（未证实归属）两个出口引。**这是产品级缺陷不是文档瑕疵——它一开口就骗人**。急用可先把这两个出口从页面摘掉（我已备好选项） |
+| **N10** | **身份真值**（取代 N0/N9 成为唯一的上线前必做项）：填真实邮箱（现为 `you@example.com`）、核对 `education.years`（现 `2025 — 2026`，本科一年会被追问）、**处理 `llwan.dev`**（实测 DNS 返回 `Non-existent domain`）、确认 `github.com/llwan` 与 remote `llwand1` 哪个是你 | 页面与 `/api/chat` 的回答里不出现任何不存在的域名或邮箱；改 `resume.json` 后重跑 `node tools/gen-resume.mjs` 且 `functions/api/_resume.mjs` 无漂移 | `public/resume.json`、`tools/gen-resume.mjs`（重跑）、`shared/prompt.mjs`（若需禁止引用未核实出口） | **部分结项（2026-09-20）**：老板当日给定口径「**页面不展示具体学校**」，已按**全链路**落实——`education.school` 字段从 json 删除，页面（含 `meta description`、静态占位、兜底常量）、`buildSystemPrompt`、`buildJdGreetingFacts`、`get_jobs` 的 `introduce` 五处同批改完，并在 prompt 里补「校名刻意不公开，被问要说不便公开」。**实测 `/api/chat` 3 轮 × 4 题 = 12/12 零泄漏**，直问「学校全名是什么」答「不便在页面上公开，可以让本人回复」。同批把占位年份 `2025 — 2026` 从展示中撤下（改为「本科在读」，**是删除不是填真值**）。**仍等人三项**：真实邮箱、`llwan.dev`（DNS 仍不存在，页脚与 AI 出口都还指着它）、GitHub 账号归属——这三条不解决，站点仍不具备上线条件 |
 
-**建议顺序**：N1+N2+N3 一批（同一文件、都是删噪声与补红线，可一次真人测完）→ **2026-09-20 已落地** → N6 已顺手完成 → N5 等老板话术 → N4/N8 → N7 收尾。N0 与 N9 这两道**上线前硬闸均已于 2026-09-20 结项**（一个管功能可用、一个管不被刷爆）→ 新增 **N10（身份真值）取代它们成为唯一的上线前必做项**，它与 N5 一样都是**等老板给东西**，不给代码做完也没用。
+| **N11** | **内容真值与观感**（2026-09-20 内容换血后新增）：① 真人判「三个项目 + 20 条关键取舍」的密度是否过载，要不要把 `decisions` 折叠或砍数；② `resume.json` 的 `decisions` 共 20 条虽各有源码/文档出处，但**逐条与当前代码是否一致只抽查未穷验**，需一次逐条核；③ StudentBuddy 链接 `11wand.com` 本轮实测 HTTPS 200，**上线前需再验一次它仍在跑**（简历里的活链接是会过期的承诺） | 老板看过真渲染并给「保留 / 折叠 / 砍到 N 条」的结论；20 条取舍逐条打勾；活链接复验通过 | `public/resume.json`、`outbound/get_jobs.md`（随之重跑） | **等真人测（MT-003）**：几何探针显示技能 5 行全部单行无溢出，但三张项目卡 585/664/631 px、整页 3425 px；**画面仍未验**（in-app Browser 表面 hidden，截图不可用） |
+
+**建议顺序**：N1+N2+N3 一批（同一文件、都是删噪声与补红线，可一次真人测完）→ **2026-09-20 已落地** → N6 已顺手完成 → N0 与 N9 这两道**上线前硬闸均已于 2026-09-20 结项**（一个管功能可用、一个管不被刷爆）→ **同日 N10 的校名一项已结**（全链路删除 + 模型保密实测），邮箱/域名/GitHub 三条仍等老板 → 新增 **N11（内容真值与观感）**：本轮把简历从 1 个项目补成 3 个、删掉自评百分比与无实证技术标签，**项目区已涨成页面主体（三卡各 585/664/631 px、整页 3425 px）**，这个密度值不值、要不要收，只有真人看渲染能判（已派 MT-003）→ 剩 N5 等老板话术 → N4/N8（N8 现含三项漂移检查待补）→ N7 收尾（建议把本轮 4 道探测题并进去）。
 
 ---
 
@@ -506,17 +508,21 @@ function nextStance(prev, signal, ctx) {
 - 改动前先更新本文档，再改代码（spec 是活的）
 - 每个任务完成即跑验证步骤并勾选
 - 状态行长度、无身份信息、额度上限三项每次改动后回归
-- 提交前 `node --check` 所有改动的 JS
+- 改动内容后**两条命令都要跑**：`node tools/gen-resume.mjs`（喂 CF Functions）+ `node tools/sync-fallback.mjs`（喂 `index.html` 的 file:// 兜底常量）。只跑一条 = 另一条路径继续显示旧内容
+- 提交前校验语法：`.mjs` 用 `node --check`；`functions/api/*.js` 是 ESM 路由，**`node --check` 必然误报**，改走一次真实 `import()` 并检查导出
+- 简历内容**只写实有出处的东西**：技术名词要能在某个仓库的依赖或源码里指认，域名与邮箱要先实测可达（本轮据此从标签墙删了 `Next.js`/`Tailwind`/`Docker` 三项零实证的）
 
 **Ask first**
 - 新增采集信号（涉及隐私边界）
 - 改变五姿态定义或转换规则
 - 引入任何第三方依赖（本项目坚持零依赖）
 - 修改 `resume.json` 的结构字段（会影响模板化）
+- 把校名等身份信息重新放回来（`education.school` 已于 2026-09-20 按老板口径全链路删除，加回需先问）
 
 **Never**
 - 让模型自行决定是否主动开口（论文已证闭源模型误报率高）
 - 在话术中暴露具体秒数、次数、滚动等监控感数据
+- 展示或让 AI 报出学校名称；给技能打自评百分比（数据里不写，也要防模型被追问时现编——见 §14.2 N10 的 12/12 探测）
 - 跨会话追踪个人、记录 IP/UA 到个人维度
 - 把密钥写入代码或提交 `.env.local`
 - 删除失败/跳过的测试来让流程变绿

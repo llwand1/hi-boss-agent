@@ -22,7 +22,8 @@ function buildIntroduce(r) {
     : '';
   const projects = (r.projects || []).map((p) => p.name).filter(Boolean).join('；');
   return [
-    `我是 ${r.name}，${edu.school || ''}${edu.major ? edu.major + '专业' : ''}${r.role || ''}。`,
+    // 不写校名：与页面、AI 分身同口径（SPEC N10「校名不对外展示」是全链路要求，get_jobs 也是对外出口）
+    `我是 ${r.name}，${[edu.level, edu.major ? edu.major + '专业' : ''].filter(Boolean).join('，')}。`,
     skills ? `核心技能：${skills}。` : '',
     tech ? `在用的技术：${tech}。` : '',
     projects ? `做过的项目：${projects}。` : '',

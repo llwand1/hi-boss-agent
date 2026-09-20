@@ -14,7 +14,7 @@
 ## 个人介绍（introduce）
 
 ```text
-我是 llwan，湖南汽车工程职业大学（本科）储能材料工程技术专业学生。核心技能：TypeScript / React、Node.js / Express、Python / Flask。在用的技术：React 18、Vite、Next.js、Express、better-sqlite3、SSE、Python、Flask。做过的项目：会打招呼的简历 Agent。求职意向：目标岗位：前端 / 全栈 / AI 应用开发（实习）；期望城市：长沙 · 株洲 / 远程；到岗时间：随时。
+我是 llwan，本科在读，储能材料工程技术专业。核心技能：TypeScript / Node.js、React / Vite、SQLite 服务端存储与分层迁移、AI 应用：SSE 流式 / 工具调用 / Agent 编排、Python / Flask。在用的技术：TypeScript、Node.js、Express、React 18、Vite、better-sqlite3、SSE、Python。做过的项目：StudentBuddy · AI 学习助手；AI 编排中心；会打招呼的简历 Agent。求职意向：目标岗位：AI 应用开发 / 全栈（实习）；期望城市：长沙 · 株洲 / 远程；到岗时间：随时。
 ```
 
 ## 提示词模板（prompt）

@@ -28,7 +28,8 @@ functions/api/_resume.mjs  自动生成（由 tools/gen-resume.mjs 从 public/re
 
 shared/prompt.mjs          AI 系统提示词生成器（全项目唯一定义，本地与 CF 共用）
 tools/gen-resume.mjs       把 public/resume.json 固化成 CF 可直接 import 的模块
-tools/export-outbound.mjs  把 public/resume.json 编译成 get_jobs 的 introduce + prompt（自动投递接入）
+tools/sync-fallback.mjs    把 public/resume.json 同步进 index.html 的 RESUME_FALLBACK（防两份副本漂移）
+tools/export-outbound.mjs  把 public/resume.json 编译成 get_jobs 的 introduce + prompt（自动投递接入；改了内容要一并重跑）
 outbound/get_jobs.md       上一步的产物：可直接粘进 get_jobs「AI 配置」—— 不随站点公开
 dev.mjs                    本地零依赖服务：托管页面 + 代理 AI + 落盘 leads/events
 docs/                      设计文档（SPEC / ADR）—— 不随站点公开
@@ -58,27 +59,41 @@ node dev.mjs
   ADMIN_TOKEN=你的看板口令   # 可选，本地不设则看板免口令
   ```
 
-改完 `public/resume.json` 刷新页面即可看到新内容；AI 侧提示词也**热更新**，无需重启服务。
+改完 `public/resume.json` 刷新页面即可看到新内容；本地 `dev.mjs` 的 AI 侧提示词也**热更新**（每次请求重读 json），无需重启服务。
+但 `resume.json` 有**两份副本不会被自动跟着走**，改完要跑两条命令（见下一节）。
 
-## 改简历内容（只需动一个文件）
+## 改简历内容（一个数据源 + 两条同步命令）
 
 编辑 `public/resume.json`：姓名、头像字、身份、所在地、联系方式、教育、关于我、技能、技术栈、AI 开场白、各板块的主动话术与推荐问题。
+
+⚠️ **三处已知副本，改 json 时必须一起过一遍**（本轮实测抓出的地雷，不是假想风险）：
+
+| 副本位置 | 用途 | 怎么同步 |
+|---|---|---|
+| `functions/api/_resume.mjs` | CF 运行时读它（没有文件系统） | `node tools/gen-resume.mjs` |
+| `public/index.html` 的 `RESUME_FALLBACK` | `file://` 双击打开时的兜底 | `node tools/sync-fallback.mjs`（幂等，只改这一块） |
+| `public/index.html` 的**静态占位**（`#rfSkills`、`#rfTech`、`#rfMajor`/`#rfEduSub`、`#rfAbout`、`<meta name="description">`） | JS 执行前的首屏与无 JS 视图 | **需手抄**，工具故意不正则改写 HTML；漏抄已由 N8 记为待检查项 |
 
 预留的可选区块（填了才显示，留空不占版面）：
 
 ```jsonc
-"intent":   { "目标岗位": "前端 / AI 应用实习", "期望城市": "长沙 / 远程", "到岗时间": "随时" },
-"projects": [ {
-  "name": "项目名", "period": "2026.03 - 2026.05",
+"education": { "major": "储能材料工程技术", "level": "本科在读" },   // 校名按老板口径不对外展示，也不注入 AI 与 get_jobs（SPEC N10）
+"skills":    [ { "name": "TypeScript / Node.js" } ],               // 只有名字，不写自评百分比（模型侧也已被禁止现编百分比）
+"intent":    { "目标岗位": "AI 应用开发 / 全栈（实习）", "期望城市": "长沙 · 株洲 / 远程", "到岗时间": "随时" },
+"projects":  [ {
+  "name": "项目名", "period": "2026.03 - 2026.05", "url": "https://活链接可选",
   "desc": "做了什么", "stack": ["React", "SSE"],
   "decisions": [ { "choice": "选的方案", "why": "为什么这么选 / 放弃了什么" } ]   // 可选：渲染成「关键取舍」列表
 } ]
 ```
 
-部署到 Cloudflare 前，跑一次生成命令（CF 运行时没有文件系统，需把配置固化）：
+`url` 会渲染成项目卡上的一行「线上实例」链接——**放之前确认它是活的**（`11wand.com` 于 2026-09-20 实测 HTTPS 200）。
+
+本地开发时 json 改动即时生效；**要部署到 Cloudflare 前，跑这两条**（CF 运行时没有文件系统，且 `file://` 兜底是另一份副本）：
 
 ```bash
-node tools/gen-resume.mjs
+node tools/gen-resume.mjs      # → functions/api/_resume.mjs（CF 用）
+node tools/sync-fallback.mjs   # → public/index.html 的 RESUME_FALLBACK（file:// 用）
 ```
 
 ## 线索看板
@@ -132,8 +147,9 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
    git remote add origin https://github.com/<你的账号>/resume.git
    git push -u origin main
    ```
-2. 先本地执行 `node tools/gen-resume.mjs` 并提交生成的 `functions/api/_resume.mjs`。
-   **改了 `public/resume.json` 就必须重跑一次**，否则线上仍是旧内容 —— 这一步没有自动校验，最容易忘。
+2. 先本地执行 `node tools/gen-resume.mjs` **和** `node tools/sync-fallback.mjs`，并提交生成的 `functions/api/_resume.mjs`。
+   **改了 `public/resume.json` 就必须两条都重跑**，否则线上或 `file://` 兜底仍是旧内容 —— 这一步没有自动校验，最容易忘（2026-09-20 就因此把校名与自评百分比漏在页面上过）。
+   ⚠️ 上线前先清掉 SPEC §14.2 **N10 的三条**：`email` 仍是 `you@example.com`、`website` 指向 **DNS 不存在的 `llwan.dev`**、GitHub 展示名与 remote 账号不一致。不清就上线，AI 分身会当着 HR 的面把访客往不存在的出口上领（已实测复现）。
 3. Cloudflare 控制台 → **Workers & Pages → 创建 → Pages → 连接 Git 仓库**。
 4. 构建设置：**构建命令留空，输出目录填 `public`**（纯静态，无需 build）。
    ⚠️ `functions/` 必须留在**仓库根**，不能放进 `public/`，否则 Functions 不会被识别。
@@ -142,7 +158,7 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
    - `ADMIN_TOKEN`（**强烈建议设置**，否则看板会禁用；不设则 `/api/admin` 返回 403 以免访客联系方式泄露）
 6. 需要线上留存线索：设置 → 函数 → **KV 命名空间绑定**，变量名 `LEADS` 和 `EVENTS`（可指向同一个）。
    不绑定不会报错，但会静默降级成「只回 ok 不落库」，线索直接丢。
-7. 重新部署，得到 `xxx.pages.dev`；自定义域可在项目里绑定（免费套餐支持）。
+7. 重新部署，得到 `xxx.pages.dev`；自定义域可在项目里绑定（免费套餐支持）。**部署成功后把地址写回本 README 与 SPEC**——本仓多处文档写过「已上线」却查无地址，别再留这种账。
 
 ### 部署后必做的一次冒烟测试
 

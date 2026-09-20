@@ -8,6 +8,25 @@
 
 ## [Unreleased]
 
+### feat (2026-09-20)
+
+**简历内容换血：校名全链路撤下、技能去自评百分比、项目从 1 个补到 3 个、技术标签砍掉 4 项无实证**
+
+- 施工面（8 文件）：`public/resume.json`（内容真值）、`public/index.html`（静态占位 + `RESUME_FALLBACK` + `renderSkills` + meta 拼接 + 新增项目 `url` 的「线上实例」链接与 `.pm a` 样式；**删除** `.bar` 系列 CSS 与 `io` 填充动画观察器——它只服务进度条，留着就是死代码）、`shared/prompt.mjs`（去 `${s.level}%`、学历行改 `level`、**新增一条「校名刻意不公开，被问要说不便公开」的保密指令**）、`tools/export-outbound.mjs`（`introduce` 不再拼校名）、`tools/gen-resume.mjs`（日志行改学历）、`tools/sync-fallback.mjs`（**新增**）、以及两份产物 `functions/api/_resume.mjs`、`outbound/get_jobs.md`。
+- 动因（他直接下的四条口径，不是我的推断）：① 页面不展示具体学校；② 不投前端；③ 核心技能不要百分比；④ 项目不止简历 Agent，还有 StudentBuddy，「这些内容你去充实一下」。四问四答：方向=「AI 应用开发 / 全栈（实习）」、呈现=纯文字列表删进度条、范围=三个都收、校名=**全链路删且 AI 也不报校名**。
+- **本轮最大的一条发现不是内容而是地雷**：`index.html` 里内置了一份 `RESUME_FALLBACK`（`file://` 双击时 fetch 不到 json 才用），内容与 `resume.json` **手抄重复**。只改 json 的话校名和百分比仍在页面上——校名就是这么漏下来的。对策：新增 `tools/sync-fallback.mjs` 机械同步该常量（幂等已验：连跑两次产物逐字一致）；**HTML 里的三处静态占位（`#rfSkills`/`#rfTech`/`#rfMajor`+`#rfEduSub`/`#rfAbout`/meta）仍要手抄**，工具不做正则改写 HTML（太脆），已把「加漂移检查」登记进 N8。
+- 充实项目前先去两个仓库取实证（**不许编**）：`studentbuddy-v2` 与 `ai-orchestrator-v2` 的非测试代码量、模块清单、ADR 原文、fail-closed 注释均逐条落到 `decisions` 里，出处可查。另实测 `https://11wand.com` **HTTPS 200 / TLS 校验通过 / HTTP 308**，所以 StudentBuddy 那条敢放线上链接，且这是全站三条项目里唯一有真实可访问实例的。
+- **技术标签墙查出 4 项无实证，已删**：`Next.js`（Desktop 全域任何 `package.json` 都没有 `next` 依赖）、`Tailwind`（同样零命中）、`Docker`（三个项目里无 Dockerfile/compose，仅一份归档需求文档提过；另注：线上 VPS 上 docker **装了但 `docker.service` failed 三个月，从未真跑过容器**，故更不能写进技能）、`Cloudflare` 由「在用」改为只保留 `Cloudflare Pages Functions`（本站函数代码是实的，但**从未部署**）。反向澄清一条疑点：`Python / Flask` **是**真的，实证在 `v1项目归档/ai-orchestrator/src/app.py`（2908 行）+ `requirements.txt`，予以保留。
+- **删了数据里的百分比 ≠ AI 不再报百分比**：起真实 `/api/chat` 连问三轮探测，第一轮里模型被追问熟练度时**自己现编了一套「100% / 80-90%」**——泄漏扫描只查旧的三个字面值（`95%/90%/85%`）会漏掉这种情况，故把探测判据从「字符串黑名单」改成**正则 `\d+\s*[%％]|百分之`**。随后在 `buildSystemPrompt` 补一条：谈技能不给百分比、被追问就用「能独立做完什么 / 还在补什么」回答。改完复测 **3 轮 × 4 题 = 12/12 零泄漏**：问「学校全名是什么」答「不便在页面上公开，可以让本人回复」（保密指令按预期生效），问「给个百分比」答「不给百分比，那个东西看着像猜的」后改用能力描述。这 4 题（校名 / 熟练度 / 项目 / 岗位方向）建议后续并入 N7 评测集。
+- 顺带改掉两句现在为假的话：① 简历 Agent 的 `desc` 原写「跑在 Cloudflare 免费额度上」——站点从未部署，已改为「按 Cloudflare Pages 免费额度设计，还没正式上线」；② 该项目 `period` 原写 `2026.08`，仓库 git 首提交是 **2026-09-15**，已改 `2026.09 — 至今`。另 `sectionTips.intent` 与 `sectionChips.edu` 各有一句会随口径变化而变成假话（提前端 / 问学校资源），已做**最小事实纠正**，不属于 N5 话术定稿、那 7 句仍等他逐条签字。
+- 实测 **33/33 新增内容断言** + 回归全绿：
+  - 新 `content.cjs` 33/33：**两条渲染路径**（json 与 `file://` 兜底）各自验 页面不含 校名/`95%`/`90%`/`85%`/`Next.js`/`Tailwind`/`Docker`/`2025 — 2026`、技能区无 `.bar` 元素、技能 5 行、教育副行=「本科在读」、项目卡 3 张、StudentBuddy 卡带 `href="https://11wand.com"` 的「线上实例」链接、无「前端 / 全栈」旧口径、meta description 干净；末条为**两条路径渲染逐字一致**的副本漂移锁。
+  - 回归：气泡 `tip.cjs` **16/16**、闸门 `n9.cjs` **25/25**、ESM 校验 **7/7**（改 `prompt.mjs` 后重烘焙产物可正常 import）。
+  - AI 侧泄漏检查：`_resume.mjs` 内 `SYSTEM_PROMPT` 与 `JD_GREETING_FACTS` 两段文本对上述禁用词 **7/7 零命中**，学历行已是「本科在读 · 储能材料工程技术专业」，保密指令已注入；`get_jobs.md` 的 `introduce`（302 字，占位符与裸 `%` 自检通过）同样不含校名。
+  - 真浏览器排版探针（非 jsdom）：视口 531×555 下 5 条技能**全部单行不换行**（各 428×21）、三张项目卡头部标题+档期均单行、侧栏无溢出；但卡片高度分别 **585 / 664 / 631 px**、整页 `scrollHeight` 3425 px——**项目区已膨胀为页面主体**，这个观感是否过载只能真人判，已派 MT-003。
+- 已知未验 / 未做：① **视觉渲染仍未验**（in-app Browser 表面 `visibilityState=hidden`，截图仍报 `NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`，只拿到几何数值没拿到画面）；② `2025 — 2026` 这个占位年份本轮是**从展示里删掉**而非填真值，N10 的邮箱 `you@example.com`、`llwan.dev`（DNS 不存在）、GitHub 账号归属三条**原样未动**，站点仍不具备上线条件；③ 新写的 3 个项目 `decisions` 共 20 条虽各有源码/文档出处，但**逐条是否仍与当前代码一致只抽查未穷验**；④ CF 侧仍是「代码正确、运行未验」。
+- 测试数据处置：`content.cjs` 驱动的是**真实页面**，会真发 `section_view` 埋点——跑完 `events.json` 从 23 涨到 24（n9 的还原逻辑只能还原到它自己快照时的 24，还原不了上一轮的污染），已按时间戳精确删回 **23 行**基线；`leads.json` 保持 1 行。临时服务进程已停、8788 已释放；`index.html` 改动前副本留在临时目录，仓库内无临时文件残留。
+
 ### docs (2026-09-20)
 
 **新增任务 N10「身份真值」并登记一条实测缺陷：AI 分身会把访客往一个不存在的域名上领**

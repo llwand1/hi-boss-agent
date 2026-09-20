@@ -30,4 +30,6 @@ export function buildJdGreetingPrompt(jd) {
 
 writeFileSync(new URL('functions/api/_resume.mjs', root), out, 'utf8');
 console.log('[gen] 已生成 functions/api/_resume.mjs（来自 public/resume.json）');
-console.log('[gen] 姓名：%s ｜ 学校：%s', resume.name, resume.education?.school || '-');
+console.log('[gen] 姓名：%s ｜ 学历：%s ｜ 项目 %s 个',
+  resume.name, [resume.education?.level, resume.education?.major].filter(Boolean).join(' · ') || '-',
+  (resume.projects || []).length);

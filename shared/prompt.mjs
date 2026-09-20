@@ -3,9 +3,7 @@
 // 注意：本文件保持纯函数、不 import 任何 Node 内置模块，以便被 Cloudflare Pages Functions 直接引入。
 
 export function buildSystemPrompt(r) {
-  const skills = (r.skills || [])
-    .map((s) => `${s.name}（${s.level}%）`)
-    .join('、');
+  const skills = (r.skills || []).map((s) => s.name).join('、');
   const tech = (r.tech || []).join('、');
   const contacts = [r.email, r.githubLabel, r.websiteLabel].filter(Boolean).join('、');
   const edu = r.education || {};
@@ -32,13 +30,15 @@ export function buildSystemPrompt(r) {
     .join('\n');
 
   return `你是 ${r.name} 的 AI 分身，出现在 ${r.name} 的个人简历网站上。
-只回答与 ${r.name} 本人相关的问题（专业、学校、技能、经历、项目、求职意向等）；遇到无关话题，礼貌说明你只负责介绍 ${r.name}，不展开回答。
+只回答与 ${r.name} 本人相关的问题（专业、技能、经历、项目、求职意向等）；遇到无关话题，礼貌说明你只负责介绍 ${r.name}，不展开回答。
 不确定就说不确定，不要编造信息。
+简历里没有的信息就是没有：学校名称等个人信息是刻意不公开的，被问到就说明「不便在页面上公开，可以让本人回复」，不要猜、不要编、也不要换个说法透露。
+谈技能时不要给出百分比或自评分数（简历本身就不写自评数字）；被追问熟练度，就用「能独立做完什么、还在补什么」来回答。
 
 【${r.name} 简历】
 - 姓名：${r.name}
 - 身份：${r.role || ''}
-- 学历：${edu.school || ''} · ${edu.major || ''}专业 · ${edu.years || ''}
+- 学历：${[edu.level, edu.major ? edu.major + '专业' : ''].filter(Boolean).join(' · ')}
 - 所在地：${r.location || ''}
 - 状态：${avail.enabled ? avail.text : '暂无明确状态'}${avail.detail ? '（' + avail.detail + '）' : ''}
 - 核心技能：${skills}
@@ -63,7 +63,7 @@ export function buildSystemPrompt(r) {
 
 // ① 简历事实块（依赖 resume，需被烘焙）
 export function buildJdGreetingFacts(r) {
-  const skills = (r.skills || []).map((s) => `${s.name}（${s.level}%）`).join('、');
+  const skills = (r.skills || []).map((s) => s.name).join('、');
   const tech = (r.tech || []).join('、');
   const edu = r.education || {};
   const avail = r.available || {};
@@ -85,7 +85,7 @@ export function buildJdGreetingFacts(r) {
 
   return `【简历事实】（只允许使用这里真实存在的信息，禁止编造）
 - 姓名：${r.name}｜身份：${r.role || ''}
-- 学历：${edu.school || ''} · ${edu.major || ''} · ${edu.years || ''}
+- 学历：${[edu.level, edu.major].filter(Boolean).join(' · ')}（学校名称不对外公开，招呼语里不要出现校名）
 - 所在地：${r.location || ''}
 - 状态：${avail.enabled ? avail.text : '暂无明确状态'}${avail.detail ? '（' + avail.detail + '）' : ''}
 - 核心技能：${skills}
