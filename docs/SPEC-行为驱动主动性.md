@@ -477,7 +477,7 @@ function nextStance(prev, signal, ctx) {
 
 | # | 任务 | 出口判据（可实测） | Files | 状态 |
 |---|---|---|---|---|
-| **N0** | **修 AI 上游 key**（被动问答链路的阻断项） | `POST /api/chat` 返回 SSE 流而非 `upstream error 401 该令牌状态不可用` | `.env.local`（不入库）| **阻断中**：2026-09-19 实测 401；`/api/jd-greeting` 同键同挂 |
+| **N0** | **修 AI 上游 key**（被动问答链路的阻断项） | `POST /api/chat` 返回 SSE 流而非 `upstream error 401 该令牌状态不可用` | `.env.local`（不入库）| **✅ 2026-09-20 结项**：老板换发第三把 key 后实测 `POST /api/chat` 返回 `200 text/event-stream` 真流（内容为简历事实）；`/api/jd-greeting` 同键同好（`score/verdict/greeting` 正常）。**排障史记入 CHANGELOG**：第二把 key 报 `无效的令牌`、第一把报 `该令牌状态不可用`，均为 Agnes 侧令牌状态，本地无过错。**本行覆盖 §17.1 第 5 行的 2026-09-19 快照（该表按「历史不回改」保留）** |
 | **N1** | 删除 18–36s 随机弹窗 | grep 无 `scheduleTip`；进页后**只允许因停留弹 1 次**，静置 120s 不再出现第 2 次自动气泡 | `public/index.html`（删 `:716-720`，并检查 `tipTimer` 是否成孤儿变量） | **2026-09-20 实施**（与 N2/N3 同批） |
 | **N2** | 额度计数器：单会话主动弹 ≤2 次，弹满后永久静默（保留现有「面板开过一次即停」） | 依次划过 3 个区块，第 3 次不弹；E9 静默 | `public/index.html` | **2026-09-20 实施**（额度=2；同一条气泡跨板块换文案算同一次，不重复计） |
 | **N3** | 隐私两件：①面板内「别主动找我」开关（开→强制不再弹）②首次主动气泡处给一行说明「会根据你正在看的内容调整推荐，不记录个人信息」 | 开关生效后停留再久也不弹；说明行在首弹时可见 | `public/index.html`、`public/resume.json` | **2026-09-20 实施**（仅改 `index.html`；说明行走前端固定文案，不入 `resume.json`——它不是简历内容，进内容表会污染单一事实源） |
@@ -488,7 +488,7 @@ function nextStance(prev, signal, ctx) {
 | **N8** | 门禁脚本化：`gen-resume` 漂移检查 + 按 ESM 正确校验 5 个路由 | 改 `resume.json` 不重跑即报错；`node --check` 不再误报 | `tools/`（新增校验脚本） | 待做 |
 | **N9** | **补 `/api/lead` 与 `/api/event` 的闸门**（§7.1 登记的基线偏差）：同源校验 + 限流 + 字段白名单（lead 只取 `name/contact/note/section`、event 只取 `type/section`），KV key 改为服务端生成（不再拼 `data.contact`），并二选一处理 `dev.mjs:250` 的 ip 字段 | 跨源 POST `/api/lead` 返回 403；连发 20 条返回 429；KV 里出现的字段只限白名单；README「默认拒绝」这句在改完后才成立 | `functions/api/lead.js`、`functions/api/event.js`、`dev.mjs`、`functions/api/_guard.mjs`、`README.md` | 待做（**上线前必做**，与 N0 同级） |
 
-**建议顺序**：N1+N2+N3 一批（同一文件、都是删噪声与补红线，可一次真人测完）→ N6 已顺手完成 → N5 等老板话术 → N4/N8 → N7 收尾。N0 与 N9 是**上线前的两道硬闸**（一个管功能可用，一个管不被刷爆），与这条线**并行**推进：N0/N9 都不影响主动气泡逻辑本身。
+**建议顺序**：N1+N2+N3 一批（同一文件、都是删噪声与补红线，可一次真人测完）→ **2026-09-20 已落地** → N6 已顺手完成 → N5 等老板话术 → N4/N8 → N7 收尾。N0 与 N9 是**上线前的两道硬闸**（一个管功能可用，一个管不被刷爆）：**N0 已于 2026-09-20 结项**，只剩 **N9** 一道未过。
 
 ---
 
