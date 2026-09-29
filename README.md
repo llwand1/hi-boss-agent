@@ -3,6 +3,8 @@
 静态单页简历 + 右上角 AI 问答分身（流式 SSE）+ 注意力捕捉（把「摸鱼浏览」变成线索）+ 主人侧线索看板。
 **内容由 `resume.json` 单一数据源驱动**，改配置即可改变页面与 AI 分身的知识，不必改代码。
 
+👉 **想快速了解这个项目的思路？先读 [`docs/INSIGHTS-设计思路.md`](docs/INSIGHTS-设计思路.md)**——七条可溯源的核心决策，以及我们主动砍掉的东西。
+
 ## 目录结构
 
 **关键约定：只有 `public/` 会被部署上线**（Cloudflare Pages 的「构建输出目录」填 `public`）。
@@ -33,7 +35,7 @@ tools/sync-fallback.mjs    把 public/resume.json 同步进 index.html 的 RESUM
 tools/export-outbound.mjs  把 public/resume.json 编译成 get_jobs 的 introduce + prompt（自动投递接入；改了内容要一并重跑）
 outbound/get_jobs.md       上一步的产物：可直接粘进 get_jobs「AI 配置」—— 不随站点公开
 dev.mjs                    本地零依赖服务：托管页面 + 代理 AI + 落盘 leads/events
-docs/                      设计文档（SPEC / ADR）—— 不随站点公开
+docs/                      设计文档（SPEC / ADR / INSIGHTS 思路总览）—— 不随站点公开，但随仓库公开
 CHANGELOG.md               变更登记与作废登记（SPEC §19 治理门禁要求的文件）
 ```
 
