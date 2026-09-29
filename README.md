@@ -6,8 +6,9 @@
 ## 目录结构
 
 **关键约定：只有 `public/` 会被部署上线**（Cloudflare Pages 的「构建输出目录」填 `public`）。
-源码、`docs/`、`dev.mjs`、`shared/`、`tools/` 都留在仓库根，因此不会随站点公开 ——
-仓库设为私有后，这些内容就不会泄露。
+源码、`docs/`、`dev.mjs`、`shared/`、`tools/` 留在仓库根，不随站点公开 —— 但**本仓库是公开的**：
+`docs/` 里的 ADR / SPEC 就是这个项目的设计过程与决策记录，本身也是作品的一部分，欢迎翻阅。
+密钥与访客数据（`.env.*`、`leads.json`、`events.json`）始终被 `.gitignore` 屏蔽，从未进过提交历史。
 
 ```
 public/                    ★ 发布目录：只有这里的内容会出现在线上
@@ -142,9 +143,9 @@ node tools/export-outbound.mjs     # 产出 outbound/get_jobs.md（introduce + p
 
 ## 部署到 Cloudflare Pages（免费）
 
-1. 推到 GitHub（**建议设为私有仓库** —— 私有后 `docs/`、`dev.mjs`、`README.md` 都不会外泄）。仓库已初始化，首次推送：
+1. 推到 GitHub（本仓库即公开作品——`docs/` 的设计文档本身就是求职证据链的一部分）。仓库已初始化，首次推送：
    ```bash
-   git remote add origin https://github.com/<你的账号>/resume.git
+   git remote add origin git@github.com:<你的账号>/resume.git
    git push -u origin main
    ```
 2. 先本地执行 `node tools/gen-resume.mjs` **和** `node tools/sync-fallback.mjs`，并提交生成的 `functions/api/_resume.mjs`。
